@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireDoctor } from "@/lib/auth";
 
 export async function registerPatient(_prevState: any, formData: FormData) {
   const session = await requireAuth();
@@ -52,4 +53,217 @@ export async function registerPatient(_prevState: any, formData: FormData) {
 
   revalidatePath("/");
   return { success: true, admissionId: result.admissionId };
+}
+
+export async function clinicalSetup(admissionId: string, formData: FormData) {
+  const session = await requireDoctor();
+
+  const diagnosis = formData.get("diagnosis") as string;
+  const chiefComplaint = (formData.get("chiefComplaint") as string) || undefined;
+  const diagnosisNotes = (formData.get("diagnosisNotes") as string) || undefined;
+  const ward = formData.get("ward") as string;
+  const cageNumber = formData.get("cageNumber") as string;
+  const condition = formData.get("condition") as string;
+  const attendingDoctor = formData.get("attendingDoctor") as string;
+
+  if (!diagnosis || !ward || !cageNumber || !condition || !attendingDoctor) {
+    return { error: "All required fields must be filled" };
+  }
+
+  // Check cage uniqueness among ACTIVE admissions
+  const existingCage = await db.admission.findFirst({
+    where: {
+      cageNumber,
+      status: "ACTIVE",
+      id: { not: admissionId },
+    },
+    include: { patient: { select: { name: true } } },
+  });
+
+  if (existingCage) {
+    return { error: `Cage ${cageNumber} is occupied by ${existingCage.patient.name}` };
+  }
+
+  await db.$transaction(async (tx) => {
+    // Update admission to ACTIVE
+    await tx.admission.update({
+      where: { id: admissionId },
+      data: {
+        status: "ACTIVE",
+        diagnosis,
+        chiefComplaint,
+        diagnosisNotes,
+        ward: ward as any,
+        cageNumber,
+        condition: condition as any,
+        attendingDoctor,
+      },
+    });
+
+    // Create initial medications if provided
+    const medsJson = formData.get("medications") as string;
+    if (medsJson) {
+      const meds = JSON.parse(medsJson) as Array<{
+        drugName: string;
+        dose: string;
+        route: string;
+        frequency: string;
+        scheduledTimes: string[];
+        notes?: string;
+      }>;
+      for (const med of meds) {
+        await tx.treatmentPlan.create({
+          data: {
+            admissionId,
+            drugName: med.drugName,
+            dose: med.dose,
+            route: med.route as any,
+            frequency: med.frequency as any,
+            scheduledTimes: med.scheduledTimes,
+            notes: med.notes,
+            createdById: session.staffId,
+          },
+        });
+      }
+    }
+
+    // Create diet plan if provided
+    const dietType = formData.get("dietType") as string;
+    if (dietType) {
+      const dietPlan = await tx.dietPlan.create({
+        data: {
+          admissionId,
+          dietType,
+          instructions: (formData.get("dietInstructions") as string) || undefined,
+          createdById: session.staffId,
+        },
+      });
+      const feedingsJson = formData.get("feedingSchedules") as string;
+      if (feedingsJson) {
+        const feedings = JSON.parse(feedingsJson) as Array<{
+          scheduledTime: string;
+          foodType: string;
+          portion: string;
+        }>;
+        for (const f of feedings) {
+          await tx.feedingSchedule.create({
+            data: {
+              dietPlanId: dietPlan.id,
+              scheduledTime: f.scheduledTime,
+              foodType: f.foodType,
+              portion: f.portion,
+            },
+          });
+        }
+      }
+    }
+
+    // Create fluid therapy if provided
+    const fluidType = formData.get("fluidType") as string;
+    if (fluidType) {
+      await tx.fluidTherapy.create({
+        data: {
+          admissionId,
+          fluidType,
+          rate: (formData.get("fluidRate") as string) || "",
+          additives: (formData.get("fluidAdditives") as string) || undefined,
+          createdById: session.staffId,
+        },
+      });
+    }
+
+    // Create isolation protocol if ward is ISOLATION
+    if (ward === "ISOLATION") {
+      const disease = formData.get("disease") as string;
+      if (disease) {
+        const ppeJson = formData.get("ppeRequired") as string;
+        await tx.isolationProtocol.create({
+          data: {
+            admissionId,
+            disease,
+            ppeRequired: ppeJson ? JSON.parse(ppeJson) : [],
+            disinfectant:
+              (formData.get("disinfectant") as string) ||
+              "Quaternary ammonium compound",
+            disinfectionInterval:
+              (formData.get("disinfectionInterval") as string) || "Q4H",
+            biosecurityNotes:
+              (formData.get("biosecurityNotes") as string) || undefined,
+            createdById: session.staffId,
+          },
+        });
+      }
+    }
+
+    // Create initial note if provided
+    const initialNotes = formData.get("initialNotes") as string;
+    if (initialNotes) {
+      await tx.clinicalNote.create({
+        data: {
+          admissionId,
+          category: "DOCTOR_ROUND",
+          content: initialNotes,
+          recordedById: session.staffId,
+        },
+      });
+    }
+  });
+
+  revalidatePath("/");
+  redirect(`/patients/${admissionId}`);
+}
+
+export async function updateCondition(admissionId: string, condition: string) {
+  await requireDoctor();
+  await db.admission.update({
+    where: { id: admissionId },
+    data: { condition: condition as any },
+  });
+  revalidatePath(`/patients/${admissionId}`);
+  revalidatePath("/");
+}
+
+export async function transferWard(admissionId: string, newWard: string, newCage: string) {
+  await requireDoctor();
+  const existing = await db.admission.findFirst({
+    where: { cageNumber: newCage, status: "ACTIVE", id: { not: admissionId } },
+    include: { patient: { select: { name: true } } },
+  });
+  if (existing) return { error: `Cage ${newCage} is occupied by ${existing.patient.name}` };
+
+  await db.admission.update({
+    where: { id: admissionId },
+    data: { ward: newWard as any, cageNumber: newCage },
+  });
+  revalidatePath(`/patients/${admissionId}`);
+  revalidatePath("/");
+}
+
+export async function dischargePatient(admissionId: string, formData: FormData) {
+  const session = await requireDoctor();
+  const dischargeNotes = formData.get("dischargeNotes") as string;
+  const condition = formData.get("condition") as string;
+
+  if (!dischargeNotes) return { error: "Discharge notes are required" };
+  if (condition !== "RECOVERED" && condition !== "DECEASED")
+    return { error: "Condition must be Recovered or Deceased" };
+
+  await db.admission.update({
+    where: { id: admissionId },
+    data: {
+      status: condition === "DECEASED" ? "DECEASED" : "DISCHARGED",
+      condition: condition as any,
+      dischargeDate: new Date(),
+      dischargedById: session.staffId,
+      dischargeNotes,
+    },
+  });
+
+  // Deactivate all active plans
+  await db.treatmentPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+  await db.dietPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+  await db.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+
+  revalidatePath("/");
+  redirect("/");
 }
