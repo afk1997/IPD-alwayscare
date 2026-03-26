@@ -1,0 +1,444 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ─────────────────────────────────────────
+
+enum Species {
+  DOG
+  CAT
+  BIRD
+  OTHER
+}
+
+enum Sex {
+  MALE
+  FEMALE
+  UNKNOWN
+}
+
+enum Ward {
+  GENERAL
+  ISOLATION
+  ICU
+}
+
+enum AdmissionStatus {
+  REGISTERED
+  ACTIVE
+  DISCHARGED
+  DECEASED
+  TRANSFERRED
+}
+
+enum Condition {
+  CRITICAL
+  GUARDED
+  STABLE
+  IMPROVING
+  RECOVERED
+}
+
+enum MedRoute {
+  PO
+  IV
+  SC
+  IM
+  TOPICAL
+  NEBULIZER
+  RECTAL
+  OPHTHALMIC
+  OTIC
+  OTHER
+}
+
+enum Frequency {
+  SID
+  BID
+  TID
+  QID
+  Q4H
+  Q6H
+  Q8H
+  Q12H
+  PRN
+  STAT
+  WEEKLY
+  OTHER
+}
+
+enum FeedingStatus {
+  PENDING
+  EATEN
+  PARTIAL
+  REFUSED
+  SKIPPED
+}
+
+enum NoteCategory {
+  OBSERVATION
+  BEHAVIOR
+  WOUND_CARE
+  ELIMINATION
+  PROCEDURE
+  DOCTOR_ROUND
+  SHIFT_HANDOVER
+  OTHER
+}
+
+enum LabTestType {
+  CBC
+  BLOOD_CHEMISTRY
+  PCR
+  URINALYSIS
+  FECAL_EXAM
+  XRAY
+  ULTRASOUND
+  SEROLOGY
+  SKIN_SCRAPING
+  OTHER
+}
+
+enum StaffRole {
+  DOCTOR
+  PARAVET
+  ATTENDANT
+  ADMIN
+}
+
+// ─── Models ────────────────────────────────────────
+
+model Staff {
+  id           String    @id @default(cuid())
+  name         String
+  phone        String    @unique
+  passwordHash String
+  role         StaffRole
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions                Session[]
+  admissionsAdmitted      Admission[]              @relation("admittedBy")
+  admissionsDischarged    Admission[]              @relation("dischargedBy")
+  vitalRecords            VitalRecord[]
+  medAdministrations      MedicationAdministration[]
+  feedingLogs             FeedingLog[]
+  clinicalNotes           ClinicalNote[]
+  bathLogs                BathLog[]
+  disinfectionLogs        DisinfectionLog[]
+  fluidRateChanges        FluidRateChange[]
+  treatmentPlansCreated   TreatmentPlan[]          @relation("createdByStaff")
+  dietPlansCreated        DietPlan[]               @relation("createdByStaff")
+  fluidTherapiesCreated   FluidTherapy[]           @relation("createdByStaff")
+  labResultsCreated       LabResult[]
+  isolationProtocolsCreated IsolationProtocol[]     @relation("createdByStaff")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  staffId   String
+  staff     Staff    @relation(fields: [staffId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([staffId])
+}
+
+model Patient {
+  id             String    @id @default(cuid())
+  name           String
+  species        Species   @default(DOG)
+  breed          String?
+  age            String?
+  weight         Float?
+  sex            Sex       @default(UNKNOWN)
+  color          String?
+  microchipId    String?
+  photoUrl       String?
+  isStray        Boolean   @default(true)
+  rescueLocation String?
+  rescuerInfo    String?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  admissions Admission[]
+}
+
+model Admission {
+  id              String          @id @default(cuid())
+  patientId       String
+  patient         Patient         @relation(fields: [patientId], references: [id])
+  admissionDate   DateTime        @default(now())
+  dischargeDate   DateTime?
+  ward            Ward?
+  cageNumber      String?
+  status          AdmissionStatus @default(REGISTERED)
+  condition       Condition?
+  diagnosis       String?
+  diagnosisNotes  String?
+  chiefComplaint  String?
+  admittedById    String
+  admittedBy      Staff           @relation("admittedBy", fields: [admittedById], references: [id])
+  attendingDoctor String?
+  dischargedById  String?
+  dischargedBy    Staff?          @relation("dischargedBy", fields: [dischargedById], references: [id])
+  dischargeNotes  String?
+  deletedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  treatmentPlans    TreatmentPlan[]
+  vitalRecords      VitalRecord[]
+  fluidTherapies    FluidTherapy[]
+  dietPlans         DietPlan[]
+  clinicalNotes     ClinicalNote[]
+  bathLogs          BathLog[]
+  labResults        LabResult[]
+  isolationProtocol IsolationProtocol?
+
+  @@index([ward, status])
+  @@index([patientId])
+  @@index([status])
+}
+
+model TreatmentPlan {
+  id             String    @id @default(cuid())
+  admissionId    String
+  admission      Admission @relation(fields: [admissionId], references: [id])
+  drugName       String
+  dose           String
+  calculatedDose String?
+  route          MedRoute
+  frequency      Frequency
+  scheduledTimes String[]
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  isActive       Boolean   @default(true)
+  notes          String?
+  createdById    String
+  createdBy      Staff     @relation("createdByStaff", fields: [createdById], references: [id])
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  administrations MedicationAdministration[]
+
+  @@index([admissionId, isActive])
+}
+
+model MedicationAdministration {
+  id              String        @id @default(cuid())
+  treatmentPlanId String
+  treatmentPlan   TreatmentPlan @relation(fields: [treatmentPlanId], references: [id])
+  scheduledDate   DateTime      @db.Date
+  scheduledTime   String
+  wasAdministered Boolean       @default(false)
+  actualTime      DateTime?
+  wasSkipped      Boolean       @default(false)
+  skipReason      String?
+  administeredById String?
+  administeredBy   Staff?       @relation(fields: [administeredById], references: [id])
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([treatmentPlanId, scheduledDate, scheduledTime])
+  @@index([scheduledDate])
+  @@index([treatmentPlanId])
+}
+
+model VitalRecord {
+  id                   String   @id @default(cuid())
+  admissionId          String
+  admission            Admission @relation(fields: [admissionId], references: [id])
+  recordedAt           DateTime @default(now())
+  temperature          Float?
+  heartRate            Int?
+  respRate             Int?
+  painScore            Int?
+  weight               Float?
+  bloodPressure        String?
+  spo2                 Float?
+  capillaryRefillTime  Float?
+  mucousMembraneColor  String?
+  notes                String?
+  recordedById         String
+  recordedBy           Staff    @relation(fields: [recordedById], references: [id])
+  createdAt            DateTime @default(now())
+
+  @@index([admissionId, recordedAt])
+}
+
+model FluidTherapy {
+  id          String    @id @default(cuid())
+  admissionId String
+  admission   Admission @relation(fields: [admissionId], references: [id])
+  fluidType   String
+  rate        String
+  additives   String?
+  startTime   DateTime  @default(now())
+  endTime     DateTime?
+  isActive    Boolean   @default(true)
+  notes       String?
+  createdById String
+  createdBy   Staff     @relation("createdByStaff", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  rateChanges FluidRateChange[]
+
+  @@index([admissionId, isActive])
+}
+
+model FluidRateChange {
+  id              String       @id @default(cuid())
+  fluidTherapyId  String
+  fluidTherapy    FluidTherapy @relation(fields: [fluidTherapyId], references: [id])
+  oldRate         String
+  newRate         String
+  changedAt       DateTime     @default(now())
+  changedById     String
+  changedBy       Staff        @relation(fields: [changedById], references: [id])
+  reason          String?
+}
+
+model DietPlan {
+  id           String    @id @default(cuid())
+  admissionId  String
+  admission    Admission @relation(fields: [admissionId], references: [id])
+  dietType     String
+  instructions String?
+  isActive     Boolean   @default(true)
+  createdById  String
+  createdBy    Staff     @relation("createdByStaff", fields: [createdById], references: [id])
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  feedingSchedules FeedingSchedule[]
+
+  @@index([admissionId, isActive])
+}
+
+model FeedingSchedule {
+  id            String   @id @default(cuid())
+  dietPlanId    String
+  dietPlan      DietPlan @relation(fields: [dietPlanId], references: [id])
+  scheduledTime String
+  foodType      String
+  portion       String
+  createdAt     DateTime @default(now())
+
+  feedingLogs FeedingLog[]
+}
+
+model FeedingLog {
+  id                String         @id @default(cuid())
+  feedingScheduleId String
+  feedingSchedule   FeedingSchedule @relation(fields: [feedingScheduleId], references: [id])
+  date              DateTime       @db.Date
+  status            FeedingStatus  @default(PENDING)
+  amountConsumed    String?
+  notes             String?
+  loggedById        String
+  loggedBy          Staff          @relation(fields: [loggedById], references: [id])
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([feedingScheduleId, date])
+  @@index([date])
+}
+
+model ClinicalNote {
+  id           String       @id @default(cuid())
+  admissionId  String
+  admission    Admission    @relation(fields: [admissionId], references: [id])
+  category     NoteCategory
+  content      String
+  recordedAt   DateTime     @default(now())
+  recordedById String
+  recordedBy   Staff        @relation(fields: [recordedById], references: [id])
+  createdAt    DateTime     @default(now())
+
+  @@index([admissionId, recordedAt])
+}
+
+model BathLog {
+  id          String    @id @default(cuid())
+  admissionId String
+  admission   Admission @relation(fields: [admissionId], references: [id])
+  bathedAt    DateTime  @default(now())
+  bathedById  String
+  bathedBy    Staff     @relation(fields: [bathedById], references: [id])
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  @@index([admissionId, bathedAt])
+}
+
+model LabResult {
+  id           String      @id @default(cuid())
+  admissionId  String
+  admission    Admission   @relation(fields: [admissionId], references: [id])
+  testType     LabTestType
+  testName     String
+  result       String
+  resultDate   DateTime    @default(now())
+  isAbnormal   Boolean     @default(false)
+  notes        String?
+  reportUrl    String?
+  createdById  String
+  createdBy    Staff       @relation(fields: [createdById], references: [id])
+  createdAt    DateTime    @default(now())
+
+  @@index([admissionId])
+}
+
+model IsolationProtocol {
+  id                    String    @id @default(cuid())
+  admissionId           String    @unique
+  admission             Admission @relation(fields: [admissionId], references: [id])
+  disease               String
+  pcrStatus             String    @default("Pending")
+  lastPcrDate           DateTime?
+  pcrTrend              String?
+  ppeRequired           String[]
+  disinfectant          String    @default("Quaternary ammonium compound")
+  disinfectionInterval  String    @default("Q4H")
+  biosecurityNotes      String?
+  isCleared             Boolean   @default(false)
+  clearedDate           DateTime?
+  createdById           String
+  createdBy             Staff     @relation("createdByStaff", fields: [createdById], references: [id])
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  disinfectionLogs DisinfectionLog[]
+}
+
+model DisinfectionLog {
+  id                  String            @id @default(cuid())
+  isolationProtocolId String
+  isolationProtocol   IsolationProtocol @relation(fields: [isolationProtocolId], references: [id])
+  performedAt         DateTime          @default(now())
+  performedById       String
+  performedBy         Staff             @relation(fields: [performedById], references: [id])
+  notes               String?
+  createdAt           DateTime          @default(now())
+}
+
+model CageConfig {
+  id         String   @id @default(cuid())
+  ward       Ward
+  cageNumber String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@unique([ward, cageNumber])
+}
