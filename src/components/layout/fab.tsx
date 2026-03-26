@@ -22,7 +22,7 @@ export function FAB() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:hidden">
+    <div className="fixed bottom-20 right-4 z-50 flex flex-col items-end gap-3 md:bottom-4">
       {/* Action buttons — expand upward when open */}
       <div
         className={cn(
