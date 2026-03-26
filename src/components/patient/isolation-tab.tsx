@@ -106,7 +106,9 @@ function PcrUpdateDialog({
       if (pcrTrend) formData.set("pcrTrend", pcrTrend);
       if (isCleared) formData.set("isCleared", "true");
       const result = await updateIsolationProtocol(protocolId, formData);
-      if (result?.success) {
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+      } else {
         toast.success("Protocol updated");
         setOpen(false);
       }

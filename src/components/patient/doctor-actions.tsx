@@ -79,7 +79,7 @@ export function DoctorActions({
     setTransferLoading(true);
     const result = await transferWard(admissionId, selectedWard, selectedCage);
     setTransferLoading(false);
-    if (result?.error) {
+    if (result && "error" in result && result.error) {
       toast.error(result.error);
     } else {
       toast.success("Patient transferred");

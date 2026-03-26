@@ -187,7 +187,7 @@ function ActivePlanSimpleRow({
     setStopLoading(true);
     try {
       const result = await stopMedication(plan.id);
-      if (result?.error) toast.error(result.error);
+      if (result && "error" in result && result.error) toast.error(result.error);
       else toast.success("Medication stopped");
     } catch {
       toast.error("Failed to stop medication");
@@ -258,7 +258,7 @@ function StartFluidsButton({ admissionId }: { admissionId: string }) {
       formData.set("additives", additives);
       formData.set("notes", notes);
       const result = await startFluidTherapy(admissionId, formData);
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Fluid therapy started");

@@ -94,7 +94,7 @@ export function ScheduleMedRow({
         scheduledDate,
         scheduledTime
       );
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
         setOptimisticAdmin(administration);
       } else {

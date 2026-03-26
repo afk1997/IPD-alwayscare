@@ -41,7 +41,7 @@ export function DischargeForm({ admissionId }: DischargeFormProps) {
     const result = await dischargePatient(admissionId, formData);
     setLoading(false);
 
-    if (result?.error) {
+    if (result && "error" in result && result.error) {
       toast.error(result.error);
     }
     // On success, dischargePatient server action calls redirect("/") itself

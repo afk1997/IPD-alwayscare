@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AdminClient } from "./admin-client";

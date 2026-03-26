@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getSession } from "@/lib/auth";
 import { RegistrationForm } from "@/components/forms/registration-form";
 

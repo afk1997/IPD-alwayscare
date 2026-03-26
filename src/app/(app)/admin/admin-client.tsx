@@ -89,7 +89,7 @@ function AddStaffDialog() {
     formData.set("role", role);
     const result = await createStaff(null, formData);
     setPending(false);
-    if (result?.error) {
+    if (result && "error" in result && result.error) {
       setError(result.error);
     } else {
       setOpen(false);
@@ -162,7 +162,7 @@ function ResetPasswordDialog({ staffId, staffName }: { staffId: string; staffNam
     setError(null);
     const result = await resetStaffPassword(staffId, password);
     setPending(false);
-    if (result?.error) {
+    if (result && "error" in result && result.error) {
       setError(result.error);
     } else {
       setOpen(false);
@@ -260,7 +260,7 @@ function AddCageForm() {
     formData.set("cageNumber", cageNumber);
     const result = await addCage(null, formData);
     setPending(false);
-    if (result?.error) {
+    if (result && "error" in result && result.error) {
       setError(result.error);
     } else {
       setSuccess(true);

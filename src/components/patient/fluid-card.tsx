@@ -64,7 +64,7 @@ export function FluidCard({ fluid, isDoctor }: FluidCardProps) {
       formData.set("newRate", newRate);
       formData.set("reason", reason);
       const result = await changeFluidRate(fluid.id, formData);
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Fluid rate updated");
@@ -83,7 +83,7 @@ export function FluidCard({ fluid, isDoctor }: FluidCardProps) {
     setStopLoading(true);
     try {
       const result = await stopFluids(fluid.id);
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Fluid therapy stopped");

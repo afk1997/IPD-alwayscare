@@ -58,7 +58,7 @@ export function LabForm({ admissionId }: LabFormProps) {
     const result = await addLabResult(admissionId, formData);
     setLoading(false);
 
-    if (result?.error) {
+    if (result && "error" in result && result.error) {
       toast.error(result.error);
     } else if (result?.success) {
       toast.success("Lab result added");

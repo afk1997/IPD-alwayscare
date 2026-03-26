@@ -99,7 +99,7 @@ export function FeedingLogSheet({
       if (notes) formData.set("notes", notes);
 
       const result = await logFeeding(feedingScheduleId, formData);
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Feeding status recorded");

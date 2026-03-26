@@ -31,12 +31,16 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
   useEffect(() => {
     if (state?.success) {
       toast.success("Patient registered");
-      router.push("/");
+      if (isDoctor && state.admissionId) {
+        router.push(`/patients/${state.admissionId}/setup`);
+      } else {
+        router.push("/");
+      }
     }
     if (state?.error) {
       toast.error(state.error);
     }
-  }, [state, router]);
+  }, [state, router, isDoctor]);
 
   return (
     <Card>
@@ -68,7 +72,7 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <Label>Species</Label>
-              <Select value={species} onValueChange={setSpecies}>
+              <Select value={species} onValueChange={(v) => setSpecies(v ?? "DOG")}>
                 <SelectTrigger className="h-12">
                   <SelectValue />
                 </SelectTrigger>
@@ -83,7 +87,7 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
 
             <div className="space-y-1.5">
               <Label>Sex</Label>
-              <Select value={sex} onValueChange={setSex}>
+              <Select value={sex} onValueChange={(v) => setSex(v ?? "UNKNOWN")}>
                 <SelectTrigger className="h-12">
                   <SelectValue />
                 </SelectTrigger>

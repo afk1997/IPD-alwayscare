@@ -97,7 +97,7 @@ export function PrescribeMedForm({ admissionId }: PrescribeMedFormProps) {
       formData.set("notes", notes);
 
       const result = await prescribeMedication(admissionId, formData);
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Medication prescribed");

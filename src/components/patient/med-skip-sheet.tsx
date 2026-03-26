@@ -54,7 +54,7 @@ export function MedSkipSheet({
         scheduledTime,
         finalReason
       );
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Dose marked as skipped");

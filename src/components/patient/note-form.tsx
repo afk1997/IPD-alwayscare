@@ -53,7 +53,7 @@ export function NoteForm({ admissionId }: NoteFormProps) {
     const result = await addNote(admissionId, formData);
     setLoading(false);
 
-    if (result?.error) {
+    if (result && "error" in result && result.error) {
       toast.error(result.error);
     } else if (result?.success) {
       toast.success("Note added successfully");

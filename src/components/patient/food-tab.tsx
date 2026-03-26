@@ -181,7 +181,7 @@ function DietPlanSheet({
       formData.set("schedules", JSON.stringify(validSchedules));
 
       const result = await createDietPlan(admissionId, formData);
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
         toast.success("Diet plan created");

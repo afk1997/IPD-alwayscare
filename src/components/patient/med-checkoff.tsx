@@ -81,7 +81,7 @@ export function MedCheckoff({
         scheduledDate,
         scheduledTime
       );
-      if (result?.error) {
+      if (result && "error" in result && result.error) {
         toast.error(result.error);
         // Revert
         setOptimisticAdmin(administration);
