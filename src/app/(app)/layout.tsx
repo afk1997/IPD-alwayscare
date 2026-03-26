@@ -8,7 +8,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <TopHeader />
-      <main className="pb-20 md:pb-4">{children}</main>
+      <main className="pb-20">{children}</main>
       <FAB />
       <BottomNav />
     </>
