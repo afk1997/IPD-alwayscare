@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { uploadToGoogleDrive } from "@/lib/google-drive";
 
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
+
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -15,6 +17,14 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "File too large. Maximum 10MB." }, { status: 400 });
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: "Invalid file type. Only images and PDFs are allowed." }, { status: 400 });
     }
 
     // Check if Google Drive is configured

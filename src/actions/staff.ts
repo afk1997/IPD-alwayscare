@@ -5,16 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { validateStaffRole } from "@/lib/validators";
-
-function handleActionError(error: unknown): { error: string } {
-  if (error && typeof error === "object" && "digest" in error) throw error;
-  if (error instanceof Error) {
-    if (error.message === "Unauthorized") return { error: "Please log in again" };
-    if (error.message.startsWith("Forbidden")) return { error: error.message };
-    if (error.message.startsWith("Invalid")) return { error: error.message };
-  }
-  return { error: "An unexpected error occurred" };
-}
+import { handleActionError } from "@/lib/action-utils";
 
 function assertAdminOrDoctor(role: string) {
   if (role !== "ADMIN" && role !== "DOCTOR") {
@@ -40,6 +31,13 @@ export async function createStaff(_prevState: unknown, formData: FormData) {
       return { error: "Password must be at least 8 characters" };
     }
 
+    const validatedRole = validateStaffRole(role);
+
+    // Prevent privilege escalation: only ADMIN can create ADMIN accounts
+    if (validatedRole === "ADMIN" && session.role !== "ADMIN") {
+      return { error: "Only admins can create admin accounts" };
+    }
+
     const existing = await db.staff.findUnique({ where: { phone } });
     if (existing) {
       return { error: "A staff member with this phone number already exists" };
@@ -48,7 +46,7 @@ export async function createStaff(_prevState: unknown, formData: FormData) {
     const passwordHash = await bcrypt.hash(password, 12);
 
     await db.staff.create({
-      data: { name, phone, passwordHash, role: validateStaffRole(role) },
+      data: { name, phone, passwordHash, role: validatedRole },
     });
 
     revalidatePath("/admin");
@@ -66,6 +64,11 @@ export async function toggleStaffActive(staffId: string) {
     const staff = await db.staff.findUnique({ where: { id: staffId } });
     if (!staff) {
       return { error: "Staff member not found" };
+    }
+
+    // Prevent privilege escalation: only ADMIN can modify ADMIN accounts
+    if (staff.role === "ADMIN" && session.role !== "ADMIN") {
+      return { error: "Only admins can modify admin accounts" };
     }
 
     const newActive = !staff.isActive;
@@ -99,6 +102,11 @@ export async function resetStaffPassword(staffId: string, newPassword: string) {
     const staff = await db.staff.findUnique({ where: { id: staffId } });
     if (!staff) {
       return { error: "Staff member not found" };
+    }
+
+    // Prevent privilege escalation: only ADMIN can reset ADMIN passwords
+    if (staff.role === "ADMIN" && session.role !== "ADMIN") {
+      return { error: "Only admins can reset admin passwords" };
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);

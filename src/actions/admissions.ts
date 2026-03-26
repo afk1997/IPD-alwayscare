@@ -12,17 +12,7 @@ import {
   validateMedRoute,
   validateFrequency,
 } from "@/lib/validators";
-
-function handleActionError(error: unknown): { error: string } {
-  // Re-throw Next.js internal throws (redirects, not-found, etc.)
-  if (error && typeof error === "object" && "digest" in error) throw error;
-  if (error instanceof Error) {
-    if (error.message === "Unauthorized") return { error: "Please log in again" };
-    if (error.message.startsWith("Forbidden")) return { error: error.message };
-    if (error.message.startsWith("Invalid")) return { error: error.message };
-  }
-  return { error: "An unexpected error occurred" };
-}
+import { handleActionError } from "@/lib/action-utils";
 
 export async function registerPatient(_prevState: unknown, formData: FormData) {
   try {
@@ -409,20 +399,20 @@ export async function archivePatient(admissionId: string) {
     });
     if (!admission || admission.deletedAt) return { error: "Admission not found" };
 
-    // Soft-delete admission and patient
-    await db.admission.update({
-      where: { id: admissionId },
-      data: { deletedAt: new Date() },
+    // Soft-delete admission and patient + deactivate plans atomically
+    await db.$transaction(async (tx) => {
+      await tx.admission.update({
+        where: { id: admissionId },
+        data: { deletedAt: new Date() },
+      });
+      await tx.patient.update({
+        where: { id: admission.patientId },
+        data: { deletedAt: new Date() },
+      });
+      await tx.treatmentPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+      await tx.dietPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+      await tx.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
     });
-    await db.patient.update({
-      where: { id: admission.patientId },
-      data: { deletedAt: new Date() },
-    });
-
-    // Deactivate all active plans for this admission
-    await db.treatmentPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
-    await db.dietPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
-    await db.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
 
     revalidatePath("/");
     revalidatePath("/archive");
@@ -444,6 +434,14 @@ export async function permanentlyDeletePatient(patientId: string) {
     if (!patient) return { error: "Patient not found" };
 
     const admissionIds = patient.admissions.map((a) => a.id);
+
+    // Prevent deleting patients with active admissions
+    const activeAdmissions = await db.admission.findMany({
+      where: { patientId, deletedAt: null, status: { in: ["ACTIVE", "REGISTERED"] } },
+    });
+    if (activeAdmissions.length > 0) {
+      return { error: "Cannot permanently delete a patient with active admissions. Archive them first." };
+    }
 
     await db.$transaction(async (tx) => {
       // 1. DisinfectionLog (via IsolationProtocol)
@@ -540,21 +538,22 @@ export async function dischargePatient(admissionId: string, formData: FormData) 
     });
     if (!admission || admission.deletedAt) return { error: "Admission not found" };
 
-    await db.admission.update({
-      where: { id: admissionId },
-      data: {
-        status: condition === "DECEASED" ? "DECEASED" : "DISCHARGED",
-        condition: validateCondition(condition),
-        dischargeDate: new Date(),
-        dischargedById: session.staffId,
-        dischargeNotes,
-      },
+    // Discharge + deactivate plans atomically
+    await db.$transaction(async (tx) => {
+      await tx.admission.update({
+        where: { id: admissionId },
+        data: {
+          status: condition === "DECEASED" ? "DECEASED" : "DISCHARGED",
+          condition: validateCondition(condition),
+          dischargeDate: new Date(),
+          dischargedById: session.staffId,
+          dischargeNotes,
+        },
+      });
+      await tx.treatmentPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+      await tx.dietPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+      await tx.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
     });
-
-    // Deactivate all active plans
-    await db.treatmentPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
-    await db.dietPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
-    await db.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
 
     revalidatePath("/");
     redirect("/");

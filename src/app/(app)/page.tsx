@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { toZonedTime } from "date-fns-tz";
+import { startOfDay } from "date-fns";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { isBathDue } from "@/lib/date-utils";
@@ -23,8 +25,8 @@ export default async function DashboardPage({
 
   const { ward: wardFilter } = await searchParams;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
+  const today = startOfDay(nowIST);
 
   const admissions = await db.admission.findMany({
     where: {

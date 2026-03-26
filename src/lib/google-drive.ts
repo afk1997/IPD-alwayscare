@@ -21,8 +21,9 @@ export async function uploadToGoogleDrive(
   const parentFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
   // Find or create subfolder
+  const safeName = subfolder.replace(/'/g, "\\'");
   const folderQuery = await drive.files.list({
-    q: `name='${subfolder}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    q: `name='${safeName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
     fields: "files(id)",
   });
 

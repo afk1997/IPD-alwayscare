@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
+import { toZonedTime } from "date-fns-tz";
+import { startOfDay } from "date-fns";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { isBathDue, getTodayIST } from "@/lib/date-utils";
@@ -103,8 +105,8 @@ export default async function SchedulePage() {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
+  const today = startOfDay(nowIST);
   const todayIST = getTodayIST();
 
   // Fetch all ACTIVE admissions with treatment plans, diet plans, bath logs

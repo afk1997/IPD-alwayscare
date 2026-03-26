@@ -1,8 +1,10 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AlertTriangle, Shield, Clock } from "lucide-react";
 import { db } from "@/lib/db";
+import { getSession } from "@/lib/auth";
 import { checkTemperature, checkHeartRate } from "@/lib/vitals-thresholds";
 import { CONDITION_CONFIG } from "@/lib/constants";
 import { formatDateTimeIST } from "@/lib/date-utils";
@@ -34,6 +36,9 @@ function isOverdue(nextDue: Date): boolean {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function IsolationWardPage() {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const admissions = await db.admission.findMany({
     where: {
       status: "ACTIVE",

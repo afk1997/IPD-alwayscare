@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { PatientHeader } from "@/components/patient/patient-header";
@@ -23,10 +23,11 @@ export default async function PatientDetailPage(props: {
   const tab = searchParams?.tab || "vitals";
 
   const session = await getSession();
-  const isDoctor = session?.role === "DOCTOR";
+  if (!session) redirect("/login");
+  const isDoctor = session.role === "DOCTOR";
 
   const admission = await db.admission.findUnique({
-    where: { id: admissionId },
+    where: { id: admissionId, deletedAt: null },
     include: {
       patient: true,
       admittedBy: { select: { name: true, role: true } },
@@ -85,7 +86,7 @@ export default async function PatientDetailPage(props: {
     },
   });
 
-  if (!admission) notFound();
+  if (!admission || admission.patient.deletedAt) notFound();
 
   // Fetch available cages for doctor transfer action
   let availableCages: Array<{ ward: string; cageNumber: string }> = [];
@@ -129,7 +130,7 @@ export default async function PatientDetailPage(props: {
           />
         )}
         {tab === "food" && (
-          <FoodTab admissionId={admissionId} dietPlans={admission.dietPlans} isDoctor={session?.role === "DOCTOR"} />
+          <FoodTab admissionId={admissionId} dietPlans={admission.dietPlans} isDoctor={session.role === "DOCTOR"} />
         )}
         {tab === "notes" && (
           <NotesTab admissionId={admissionId} notes={admission.clinicalNotes} isDoctor={isDoctor} />
@@ -141,7 +142,7 @@ export default async function PatientDetailPage(props: {
           <BathTab admissionId={admissionId} bathLogs={admission.bathLogs} admissionDate={admission.admissionDate} isDoctor={isDoctor} />
         )}
         {tab === "isolation" && admission.isolationProtocol && (
-          <IsolationTab admissionId={admissionId} isolationProtocol={admission.isolationProtocol} labResults={admission.labResults} isDoctor={session?.role === "DOCTOR"} />
+          <IsolationTab admissionId={admissionId} isolationProtocol={admission.isolationProtocol} labResults={admission.labResults} isDoctor={session.role === "DOCTOR"} />
         )}
       </div>
 

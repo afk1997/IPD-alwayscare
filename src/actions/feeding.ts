@@ -4,16 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireDoctor, requireAuth } from "@/lib/auth";
 import { validateFeedingStatus } from "@/lib/validators";
-
-function handleActionError(error: unknown): { error: string } {
-  if (error && typeof error === "object" && "digest" in error) throw error;
-  if (error instanceof Error) {
-    if (error.message === "Unauthorized") return { error: "Please log in again" };
-    if (error.message.startsWith("Forbidden")) return { error: error.message };
-    if (error.message.startsWith("Invalid")) return { error: error.message };
-  }
-  return { error: "An unexpected error occurred" };
-}
+import { handleActionError } from "@/lib/action-utils";
 
 export async function createDietPlan(admissionId: string, formData: FormData) {
   try {
