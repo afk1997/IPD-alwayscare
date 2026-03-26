@@ -120,7 +120,7 @@ async function main() {
           diagnosis: "Tick Fever (Ehrlichiosis)",
           chiefComplaint: "High fever, lethargy, tick infestation",
           admittedById: drShah.id,
-          attendingDoctor: drShah.id,
+          attendingDoctor: drShah.name,
 
           // Clinical note
           clinicalNotes: {
@@ -321,7 +321,7 @@ async function main() {
           diagnosis: "Post-op (splenectomy)",
           chiefComplaint: "Splenic mass — emergency splenectomy performed",
           admittedById: drShah.id,
-          attendingDoctor: drShah.id,
+          attendingDoctor: drShah.name,
 
           vitalRecords: {
             create: [
@@ -457,7 +457,7 @@ async function main() {
           diagnosis: "Dehydration + Malnutrition",
           chiefComplaint: "Emaciated, dehydrated stray found collapsed on road",
           admittedById: drShah.id,
-          attendingDoctor: drShah.id,
+          attendingDoctor: drShah.name,
 
           vitalRecords: {
             create: [
@@ -608,7 +608,7 @@ async function main() {
           diagnosis: "Canine Distemper (CDV)",
           chiefComplaint: "Nasal discharge, coughing, lethargy, neurological signs",
           admittedById: drShah.id,
-          attendingDoctor: drShah.id,
+          attendingDoctor: drShah.name,
 
           clinicalNotes: {
             create: {

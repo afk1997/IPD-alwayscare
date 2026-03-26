@@ -306,6 +306,8 @@ model FluidRateChange {
   changedById     String
   changedBy       Staff        @relation(fields: [changedById], references: [id])
   reason          String?
+
+  @@index([fluidTherapyId])
 }
 
 model DietPlan {
@@ -431,6 +433,8 @@ model DisinfectionLog {
   performedBy         Staff             @relation(fields: [performedById], references: [id])
   notes               String?
   createdAt           DateTime          @default(now())
+
+  @@index([isolationProtocolId])
 }
 
 model CageConfig {
