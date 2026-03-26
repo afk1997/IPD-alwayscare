@@ -1,0 +1,198 @@
+<h2>Mobile Navigation & Layout</h2>
+<p class="subtitle">The primary interface is mobile — staff do rounds with their phones. Pick the navigation pattern that fits best.</p>
+
+<div class="cards">
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#0a0a0a;border-radius:12px;padding:16px;width:260px;margin:0 auto;font-family:system-ui;color:#fff;position:relative;min-height:480px;border:2px solid #222;">
+        <!-- Status bar -->
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:12px;">
+          <span>9:41</span>
+          <span>Always Care IPD</span>
+          <span>⚡ 85%</span>
+        </div>
+
+        <!-- Summary cards row -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+          <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#14b8a6;">12</div>
+            <div style="font-size:9px;color:#888;">Total IPD</div>
+          </div>
+          <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#ef4444;">3</div>
+            <div style="font-size:9px;color:#888;">Critical</div>
+          </div>
+          <div style="flex:1;background:#1a1a2e;border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#f59e0b;">5</div>
+            <div style="font-size:9px;color:#888;">Meds Due</div>
+          </div>
+        </div>
+
+        <!-- Ward tabs -->
+        <div style="display:flex;gap:4px;margin-bottom:10px;">
+          <div style="padding:5px 12px;background:#14b8a6;color:#000;border-radius:20px;font-size:11px;font-weight:600;">All</div>
+          <div style="padding:5px 12px;background:#1a1a2e;color:#888;border-radius:20px;font-size:11px;">General</div>
+          <div style="padding:5px 12px;background:#1a1a2e;color:#888;border-radius:20px;font-size:11px;">Isolation</div>
+        </div>
+
+        <!-- Patient cards -->
+        <div style="background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <span style="font-weight:600;font-size:13px;">Bruno</span>
+              <span style="font-size:10px;color:#888;margin-left:4px;">Labrador Mix</span>
+            </div>
+            <span style="background:#ef4444;color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600;">CRITICAL</span>
+          </div>
+          <div style="font-size:10px;color:#888;margin-bottom:4px;">G-03 · Tick Fever · Dr. Shah</div>
+          <div style="display:flex;gap:8px;font-size:10px;">
+            <span style="color:#ef4444;">🌡 40.1°C</span>
+            <span style="color:#ef4444;">❤ 152 bpm</span>
+            <span style="color:#f59e0b;">💊 Ceftriaxone 08:00</span>
+          </div>
+        </div>
+
+        <div style="background:#111;border:1px solid #2a2a2a;border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <span style="font-weight:600;font-size:13px;">Chhotu</span>
+              <span style="font-size:10px;color:#888;margin-left:4px;">Indian Pariah</span>
+            </div>
+            <span style="background:#22c55e;color:#000;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600;">STABLE</span>
+          </div>
+          <div style="font-size:10px;color:#888;margin-bottom:4px;">G-01 · Post-op (splenectomy) · Dr. Patel</div>
+          <div style="display:flex;gap:8px;font-size:10px;">
+            <span style="color:#22c55e;">🌡 38.6°C</span>
+            <span style="color:#22c55e;">❤ 88 bpm</span>
+            <span style="color:#f97316;">🛁 Bath due</span>
+          </div>
+        </div>
+
+        <!-- Bottom nav -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:#111;border-top:1px solid #222;display:flex;justify-content:space-around;padding:10px 0 14px;border-radius:0 0 10px 10px;">
+          <div style="text-align:center;color:#14b8a6;">
+            <div style="font-size:18px;">🏠</div>
+            <div style="font-size:9px;font-weight:600;">Home</div>
+          </div>
+          <div style="text-align:center;color:#666;">
+            <div style="font-size:18px;">📋</div>
+            <div style="font-size:9px;">Schedule</div>
+          </div>
+          <div style="text-align:center;color:#666;">
+            <div style="font-size:18px;">⚠️</div>
+            <div style="font-size:9px;">Isolation</div>
+          </div>
+          <div style="text-align:center;color:#666;">
+            <div style="font-size:18px;">👤</div>
+            <div style="font-size:9px;">Profile</div>
+          </div>
+        </div>
+
+        <!-- FAB -->
+        <div style="position:absolute;bottom:70px;right:16px;width:48px;height:48px;background:#14b8a6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;color:#000;font-weight:700;box-shadow:0 4px 12px rgba(20,184,166,0.4);">+</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A: Dark Theme + Bottom Nav + FAB</h3>
+      <p>Dark mode dashboard. Bottom nav (4 tabs). Floating action button for quick actions (admit, vitals, med checkoff). Patient cards with inline vitals + status badges. Ward filter pills at top.</p>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f8fafc;border-radius:12px;padding:16px;width:260px;margin:0 auto;font-family:system-ui;color:#1a1a1a;position:relative;min-height:480px;border:2px solid #e2e8f0;">
+        <!-- Status bar -->
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-bottom:12px;">
+          <span>9:41</span>
+          <span style="font-weight:600;color:#0f172a;">Always Care IPD</span>
+          <span>⚡ 85%</span>
+        </div>
+
+        <!-- Summary cards row -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+          <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#0d9488;">12</div>
+            <div style="font-size:9px;color:#64748b;">Total IPD</div>
+          </div>
+          <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#dc2626;">3</div>
+            <div style="font-size:9px;color:#64748b;">Critical</div>
+          </div>
+          <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px;text-align:center;">
+            <div style="font-size:20px;font-weight:700;color:#d97706;">5</div>
+            <div style="font-size:9px;color:#64748b;">Meds Due</div>
+          </div>
+        </div>
+
+        <!-- Ward tabs -->
+        <div style="display:flex;gap:4px;margin-bottom:10px;">
+          <div style="padding:5px 12px;background:#0d9488;color:#fff;border-radius:20px;font-size:11px;font-weight:600;">All</div>
+          <div style="padding:5px 12px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:11px;">General</div>
+          <div style="padding:5px 12px;background:#f1f5f9;color:#64748b;border-radius:20px;font-size:11px;">Isolation</div>
+        </div>
+
+        <!-- Patient cards -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <span style="font-weight:600;font-size:13px;color:#0f172a;">Bruno</span>
+              <span style="font-size:10px;color:#94a3b8;margin-left:4px;">Labrador Mix</span>
+            </div>
+            <span style="background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600;border:1px solid #fecaca;">CRITICAL</span>
+          </div>
+          <div style="font-size:10px;color:#64748b;margin-bottom:4px;">G-03 · Tick Fever · Dr. Shah</div>
+          <div style="display:flex;gap:8px;font-size:10px;">
+            <span style="color:#dc2626;">🌡 40.1°C</span>
+            <span style="color:#dc2626;">❤ 152 bpm</span>
+            <span style="color:#d97706;">💊 Ceftriaxone 08:00</span>
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <span style="font-weight:600;font-size:13px;color:#0f172a;">Chhotu</span>
+              <span style="font-size:10px;color:#94a3b8;margin-left:4px;">Indian Pariah</span>
+            </div>
+            <span style="background:#f0fdf4;color:#16a34a;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:600;border:1px solid #bbf7d0;">STABLE</span>
+          </div>
+          <div style="font-size:10px;color:#64748b;margin-bottom:4px;">G-01 · Post-op (splenectomy) · Dr. Patel</div>
+          <div style="display:flex;gap:8px;font-size:10px;">
+            <span style="color:#16a34a;">🌡 38.6°C</span>
+            <span style="color:#16a34a;">❤ 88 bpm</span>
+            <span style="color:#ea580c;">🛁 Bath due</span>
+          </div>
+        </div>
+
+        <!-- Bottom nav -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e2e8f0;display:flex;justify-content:space-around;padding:10px 0 14px;border-radius:0 0 10px 10px;">
+          <div style="text-align:center;color:#0d9488;">
+            <div style="font-size:18px;">🏠</div>
+            <div style="font-size:9px;font-weight:600;">Home</div>
+          </div>
+          <div style="text-align:center;color:#94a3b8;">
+            <div style="font-size:18px;">📋</div>
+            <div style="font-size:9px;">Schedule</div>
+          </div>
+          <div style="text-align:center;color:#94a3b8;">
+            <div style="font-size:18px;">⚠️</div>
+            <div style="font-size:9px;">Isolation</div>
+          </div>
+          <div style="text-align:center;color:#94a3b8;">
+            <div style="font-size:18px;">👤</div>
+            <div style="font-size:9px;">Profile</div>
+          </div>
+        </div>
+
+        <!-- FAB -->
+        <div style="position:absolute;bottom:70px;right:16px;width:48px;height:48px;background:#0d9488;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;font-weight:700;box-shadow:0 4px 12px rgba(13,148,136,0.3);">+</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B: Light Theme + Bottom Nav + FAB</h3>
+      <p>Clean light mode. Same layout structure — bottom nav, FAB, patient cards, ward filters. Better readability in bright clinic lighting. White card surfaces with subtle shadows.</p>
+    </div>
+  </div>
+</div>

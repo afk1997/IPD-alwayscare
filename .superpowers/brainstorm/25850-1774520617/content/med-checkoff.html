@@ -1,0 +1,158 @@
+<h2>Medication Checkoff — Daily Workflow</h2>
+<p class="subtitle">Staff see a list of meds with time slots and tap to mark as given. This is the most frequent interaction in the app. Which pattern feels fastest?</p>
+
+<div class="cards">
+  <!-- Option A: Time-slot buttons inline -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f8fafc;border-radius:12px;padding:14px;width:280px;margin:0 auto;font-family:system-ui;color:#1a1a1a;min-height:400px;border:2px solid #e2e8f0;">
+        <div style="font-size:12px;font-weight:600;color:#0f172a;margin-bottom:10px;">Active Medications</div>
+
+        <!-- Med 1: Ceftriaxone -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#0f172a;">Ceftriaxone</div>
+              <div style="font-size:10px;color:#64748b;">25 mg/kg · IV · BID</div>
+            </div>
+            <span style="font-size:9px;color:#94a3b8;background:#f1f5f9;padding:2px 6px;border-radius:4px;">Active</span>
+          </div>
+          <!-- Time slot buttons -->
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;padding:10px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;text-align:center;cursor:pointer;">
+              <div style="font-size:11px;font-weight:600;color:#16a34a;">08:00</div>
+              <div style="font-size:16px;">✓</div>
+              <div style="font-size:8px;color:#16a34a;">Ravi · 08:12</div>
+            </div>
+            <div style="flex:1;padding:10px 8px;background:#fef2f2;border:2px solid #fecaca;border-radius:8px;text-align:center;cursor:pointer;">
+              <div style="font-size:11px;font-weight:600;color:#dc2626;">20:00</div>
+              <div style="font-size:12px;color:#dc2626;font-weight:600;">OVERDUE</div>
+              <div style="font-size:8px;color:#dc2626;">Tap to give</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Med 2: Meloxicam -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#0f172a;">Meloxicam</div>
+              <div style="font-size:10px;color:#64748b;">0.2 mg/kg · PO · SID</div>
+            </div>
+            <span style="font-size:9px;color:#94a3b8;background:#f1f5f9;padding:2px 6px;border-radius:4px;">Active</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;padding:10px 8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;text-align:center;cursor:pointer;">
+              <div style="font-size:11px;font-weight:600;color:#64748b;">09:00</div>
+              <div style="font-size:10px;color:#94a3b8;">Pending</div>
+              <div style="font-size:8px;color:#94a3b8;">Tap to give</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Med 3: Nebulization -->
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#0f172a;">Nebulization</div>
+              <div style="font-size:10px;color:#64748b;">Salbutamol + NS · NEB · TID</div>
+            </div>
+            <span style="font-size:9px;color:#94a3b8;background:#f1f5f9;padding:2px 6px;border-radius:4px;">Active</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <div style="flex:1;padding:10px 8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;text-align:center;">
+              <div style="font-size:11px;font-weight:600;color:#16a34a;">08:00</div>
+              <div style="font-size:16px;">✓</div>
+              <div style="font-size:8px;color:#16a34a;">Priya · 08:05</div>
+            </div>
+            <div style="flex:1;padding:10px 8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;text-align:center;">
+              <div style="font-size:11px;font-weight:600;color:#64748b;">14:00</div>
+              <div style="font-size:10px;color:#94a3b8;">Pending</div>
+            </div>
+            <div style="flex:1;padding:10px 8px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;text-align:center;">
+              <div style="font-size:11px;font-weight:600;color:#64748b;">22:00</div>
+              <div style="font-size:10px;color:#94a3b8;">Pending</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A: Inline Time-Slot Buttons</h3>
+      <p>Each med shows as a card with time-slot buttons below it. Green = given (shows who + when). Red = overdue. Grey = pending/future. Single tap on a slot to mark as given. Long-press to skip with reason. Everything visible at a glance.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Checklist style -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div style="background:#f8fafc;border-radius:12px;padding:14px;width:280px;margin:0 auto;font-family:system-ui;color:#1a1a1a;min-height:400px;border:2px solid #e2e8f0;">
+        <div style="font-size:12px;font-weight:600;color:#0f172a;margin-bottom:10px;">Today's Medications</div>
+
+        <!-- Time group: 08:00 -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:600;color:#16a34a;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;padding-left:4px;">08:00 — Completed</div>
+
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <div style="width:28px;height:28px;background:#16a34a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0;">✓</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;color:#0f172a;">Ceftriaxone <span style="font-weight:400;color:#64748b;">25mg/kg IV</span></div>
+              <div style="font-size:9px;color:#16a34a;">Given by Ravi at 08:12</div>
+            </div>
+          </div>
+
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;">
+            <div style="width:28px;height:28px;background:#16a34a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0;">✓</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;color:#0f172a;">Nebulization <span style="font-weight:400;color:#64748b;">Salbutamol NEB</span></div>
+              <div style="font-size:9px;color:#16a34a;">Given by Priya at 08:05</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time group: 09:00 -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;padding-left:4px;">09:00 — Pending</div>
+
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;">
+            <div style="width:28px;height:28px;background:#fff;border:2px solid #d1d5db;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;"></div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;color:#0f172a;">Meloxicam <span style="font-weight:400;color:#64748b;">0.2mg/kg PO</span></div>
+              <div style="font-size:9px;color:#94a3b8;">Tap checkbox to mark as given</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time group: 14:00 -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;padding-left:4px;">14:00 — Upcoming</div>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;opacity:0.7;">
+            <div style="width:28px;height:28px;background:#f1f5f9;border:2px solid #e2e8f0;border-radius:6px;flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;color:#64748b;">Nebulization <span style="font-weight:400;">Salbutamol NEB</span></div>
+              <div style="font-size:9px;color:#94a3b8;">Scheduled</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time group: 20:00 OVERDUE -->
+        <div>
+          <div style="font-size:10px;font-weight:600;color:#dc2626;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;padding-left:4px;">20:00 — ⚠ OVERDUE</div>
+
+          <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px;">
+            <div style="width:28px;height:28px;background:#fff;border:2px solid #dc2626;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;font-size:14px;color:#dc2626;">!</div>
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;color:#dc2626;">Ceftriaxone <span style="font-weight:400;">25mg/kg IV</span></div>
+              <div style="font-size:9px;color:#dc2626;">35 min overdue — tap to give or skip</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B: Time-Grouped Checklist</h3>
+      <p>Meds grouped by scheduled time (like a to-do list). Checkbox per med. Time groups show status: Completed (green), Pending, Upcoming (dimmed), Overdue (red). Reads top-to-bottom like a shift checklist. Tap checkbox = given, tap med row = skip option.</p>
+    </div>
+  </div>
+</div>
