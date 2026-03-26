@@ -1,7 +1,10 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
+const prisma = new PrismaClient({ adapter });
 
 // Helper: date offset from now
 const daysAgo = (d: number) => new Date(Date.now() - d * 24 * 60 * 60 * 1000);
