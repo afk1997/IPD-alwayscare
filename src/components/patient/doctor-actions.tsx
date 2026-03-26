@@ -109,7 +109,7 @@ export function DoctorActions({
   }
 
   return (
-    <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex gap-2 z-10">
+    <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex gap-2 z-50">
       {/* Update Condition — only for active patients */}
       {isActive && <Sheet open={conditionOpen} onOpenChange={setConditionOpen}>
         <SheetTrigger

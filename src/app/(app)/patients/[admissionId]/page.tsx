@@ -112,7 +112,7 @@ export default async function PatientDetailPage(props: {
   const isActive = admission.status === "ACTIVE";
 
   return (
-    <div className={isDoctor && isActive ? "pb-20" : ""}>
+    <div className={isDoctor ? "pb-32" : ""}>
       <PatientHeader admission={admission} isDoctor={isDoctor} />
       <TabNav ward={admission.ward} activeTab={tab} />
 
