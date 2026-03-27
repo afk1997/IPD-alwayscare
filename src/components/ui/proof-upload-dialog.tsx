@@ -116,8 +116,11 @@ function ProofViewSheet({
     }
   }, [open, fetchProofs]);
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   async function handleDelete(proofId: string) {
     setDeletingId(proofId);
+    setConfirmDeleteId(null);
     try {
       const result = await deleteProofAttachment(proofId);
       if (result && "error" in result && result.error) {
@@ -282,7 +285,7 @@ function ProofViewSheet({
                       {isDoctor && (
                         <button
                           type="button"
-                          onClick={() => handleDelete(proof.id)}
+                          onClick={() => setConfirmDeleteId(proof.id)}
                           disabled={deletingId === proof.id}
                           className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-red-600 disabled:opacity-50"
                           aria-label="Remove photo"
@@ -319,7 +322,7 @@ function ProofViewSheet({
                       {isDoctor && (
                         <button
                           type="button"
-                          onClick={() => handleDelete(proof.id)}
+                          onClick={() => setConfirmDeleteId(proof.id)}
                           disabled={deletingId === proof.id}
                           className="flex-shrink-0 text-yellow-500 hover:text-red-500 disabled:opacity-50"
                           aria-label="Remove entry"
@@ -445,6 +448,36 @@ function ProofViewSheet({
           )}
         </div>
       </SheetContent>
+
+      {/* Confirmation dialog before deleting a proof */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={(v) => { if (!v) setConfirmDeleteId(null); }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Delete this proof?</DialogTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              The file will be renamed to &quot;DELETED&quot; in Google Drive. This cannot be undone.
+            </p>
+          </DialogHeader>
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setConfirmDeleteId(null)}
+              disabled={!!deletingId}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+              disabled={!!deletingId}
+            >
+              {deletingId ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
