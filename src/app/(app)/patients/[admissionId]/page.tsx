@@ -14,6 +14,7 @@ import { NotesTab } from "@/components/patient/notes-tab";
 import { LabsTab } from "@/components/patient/labs-tab";
 import { BathTab } from "@/components/patient/bath-tab";
 import { IsolationTab } from "@/components/patient/isolation-tab";
+import { LogsTab } from "@/components/patient/logs-tab";
 
 export default async function PatientDetailPage(props: {
   params: Promise<{ admissionId: string }>;
@@ -66,7 +67,7 @@ export default async function PatientDetailPage(props: {
       dietPlans: {
         where: { deletedAt: null },
         include: {
-          feedingSchedules: { include: { feedingLogs: { where: { date: today }, orderBy: { date: "desc" } } } },
+          feedingSchedules: { include: { feedingLogs: { where: { date: today }, orderBy: { date: "desc" }, include: { loggedBy: { select: { name: true } } } } } },
           createdBy: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -150,6 +151,9 @@ export default async function PatientDetailPage(props: {
         )}
         {tab === "notes" && (
           <NotesTab admissionId={admissionId} notes={admission.clinicalNotes} isDoctor={isDoctor} />
+        )}
+        {tab === "logs" && (
+          <LogsTab admission={admission} />
         )}
         {tab === "labs" && (
           <LabsTab admissionId={admissionId} labResults={admission.labResults} isDoctor={isDoctor} />
