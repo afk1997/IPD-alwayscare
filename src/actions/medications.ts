@@ -22,6 +22,7 @@ export async function prescribeMedication(admissionId: string, formData: FormDat
     const calculatedDose = (formData.get("calculatedDose") as string) || undefined;
     const route = formData.get("route") as string;
     const frequency = formData.get("frequency") as string;
+    const customFrequency = (formData.get("customFrequency") as string) || undefined;
     const scheduledTimesRaw = formData.get("scheduledTimes") as string;
     const notes = (formData.get("notes") as string) || undefined;
     const endDateRaw = (formData.get("endDate") as string) || undefined;
@@ -49,6 +50,7 @@ export async function prescribeMedication(admissionId: string, formData: FormDat
         calculatedDose,
         route: validateMedRoute(route),
         frequency: validateFrequency(frequency),
+        customFrequency,
         scheduledTimes,
         notes,
         endDate,

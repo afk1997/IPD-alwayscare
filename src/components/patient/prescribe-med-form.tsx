@@ -42,6 +42,7 @@ export function PrescribeMedForm({ admissionId }: PrescribeMedFormProps) {
   const [calculatedDose, setCalculatedDose] = useState("");
   const [route, setRoute] = useState("");
   const [frequency, setFrequency] = useState("");
+  const [customFrequency, setCustomFrequency] = useState("");
   const [scheduledTimes, setScheduledTimes] = useState<string[]>([]);
   const [newTime, setNewTime] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -72,6 +73,7 @@ export function PrescribeMedForm({ admissionId }: PrescribeMedFormProps) {
     setCalculatedDose("");
     setRoute("");
     setFrequency("");
+    setCustomFrequency("");
     setScheduledTimes([]);
     setNewTime("");
     setEndDate("");
@@ -92,6 +94,9 @@ export function PrescribeMedForm({ admissionId }: PrescribeMedFormProps) {
       formData.set("calculatedDose", calculatedDose);
       formData.set("route", route);
       formData.set("frequency", frequency);
+      if (frequency === "OTHER" && customFrequency) {
+        formData.set("customFrequency", customFrequency);
+      }
       formData.set("scheduledTimes", JSON.stringify(scheduledTimes));
       formData.set("endDate", endDate);
       formData.set("notes", notes);
@@ -200,6 +205,20 @@ export function PrescribeMedForm({ admissionId }: PrescribeMedFormProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Custom Frequency — shown when OTHER is selected */}
+          {frequency === "OTHER" && (
+            <div className="space-y-1.5">
+              <Label>Custom Frequency *</Label>
+              <Input
+                value={customFrequency}
+                onChange={(e) => setCustomFrequency(e.target.value)}
+                placeholder="e.g., Every 3 days, Twice a week on Mon/Thu"
+                className="h-12"
+                required
+              />
+            </div>
+          )}
 
           {/* Scheduled Times */}
           <div className="space-y-1.5">

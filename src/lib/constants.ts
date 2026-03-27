@@ -10,7 +10,8 @@ export const FREQUENCY_LABELS: Record<string, string> = {
   PRN: "As needed",
   STAT: "One-time",
   WEEKLY: "Weekly",
-  OTHER: "Other",
+  ALTERNATE_DAY: "Every alternate day",
+  OTHER: "Custom",
 };
 
 export const FREQUENCY_DEFAULT_TIMES: Record<string, string[]> = {
@@ -25,6 +26,7 @@ export const FREQUENCY_DEFAULT_TIMES: Record<string, string[]> = {
   STAT: [],
   PRN: [],
   WEEKLY: ["08:00"],
+  ALTERNATE_DAY: ["08:00"],
   OTHER: [],
 };
 

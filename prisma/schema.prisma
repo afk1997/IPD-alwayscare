@@ -68,6 +68,7 @@ enum Frequency {
   PRN
   STAT
   WEEKLY
+  ALTERNATE_DAY
   OTHER
 }
 
@@ -216,8 +217,9 @@ model TreatmentPlan {
   dose           String
   calculatedDose String?
   route          MedRoute
-  frequency      Frequency
-  scheduledTimes String[]
+  frequency        Frequency
+  customFrequency  String?
+  scheduledTimes   String[]
   startDate      DateTime  @default(now())
   endDate        DateTime?
   isActive       Boolean   @default(true)

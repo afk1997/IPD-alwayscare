@@ -57,6 +57,7 @@ interface TreatmentPlan {
   calculatedDose: string | null;
   route: string;
   frequency: string;
+  customFrequency: string | null;
   scheduledTimes: string[];
   isActive: boolean;
   startDate: Date;
@@ -229,7 +230,7 @@ function ActivePlanSimpleRow({
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-gray-800">{plan.drugName}</p>
         <p className="text-xs text-gray-500">
-          {plan.dose} · {plan.route} · <span className="italic">{plan.frequency}</span>
+          {plan.dose} · {plan.route} · <span className="italic">{plan.customFrequency || plan.frequency}</span>
         </p>
         {plan.notes && <p className="text-xs text-gray-400 mt-0.5">{plan.notes}</p>}
       </div>
