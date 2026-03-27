@@ -412,11 +412,38 @@ export async function archivePatient(admissionId: string) {
       await tx.treatmentPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
       await tx.dietPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
       await tx.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+      await tx.isolationProtocol.updateMany({
+        where: { admissionId },
+        data: { isCleared: true, clearedDate: new Date() },
+      });
     });
 
     revalidatePath("/");
     revalidatePath("/archive");
     redirect("/");
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function restorePatient(patientId: string) {
+  try {
+    await requireDoctor();
+
+    await db.$transaction(async (tx) => {
+      await tx.patient.update({
+        where: { id: patientId },
+        data: { deletedAt: null },
+      });
+      await tx.admission.updateMany({
+        where: { patientId },
+        data: { deletedAt: null },
+      });
+    });
+
+    revalidatePath("/");
+    revalidatePath("/archive");
+    return { success: true };
   } catch (error) {
     return handleActionError(error);
   }
@@ -444,6 +471,66 @@ export async function permanentlyDeletePatient(patientId: string) {
     }
 
     await db.$transaction(async (tx) => {
+      // 0a. Collect record IDs that ProofAttachments may reference
+      const treatmentPlanIds = (await tx.treatmentPlan.findMany({
+        where: { admissionId: { in: admissionIds } },
+        select: { id: true },
+      })).map((t) => t.id);
+
+      const vitalIds = (await tx.vitalRecord.findMany({
+        where: { admissionId: { in: admissionIds } },
+        select: { id: true },
+      })).map((v) => v.id);
+
+      const bathIds = (await tx.bathLog.findMany({
+        where: { admissionId: { in: admissionIds } },
+        select: { id: true },
+      })).map((b) => b.id);
+
+      const feedingSchedules = await tx.feedingSchedule.findMany({
+        where: {
+          dietPlan: { admissionId: { in: admissionIds } },
+        },
+        select: { id: true },
+      });
+      const feedingLogIds = (await tx.feedingLog.findMany({
+        where: { feedingScheduleId: { in: feedingSchedules.map((s) => s.id) } },
+        select: { id: true },
+      })).map((f) => f.id);
+
+      const labIds = (await tx.labResult.findMany({
+        where: { admissionId: { in: admissionIds } },
+        select: { id: true },
+      })).map((l) => l.id);
+
+      const disinfectionProtos = await tx.isolationProtocol.findMany({
+        where: { admissionId: { in: admissionIds } },
+        select: { id: true },
+      });
+      const disinfectionIds = (await tx.disinfectionLog.findMany({
+        where: { isolationProtocolId: { in: disinfectionProtos.map((p) => p.id) } },
+        select: { id: true },
+      })).map((d) => d.id);
+
+      const allRecordIds = [
+        ...treatmentPlanIds,
+        ...vitalIds,
+        ...bathIds,
+        ...feedingLogIds,
+        ...labIds,
+        ...disinfectionIds,
+      ];
+
+      // 0b. Delete ProofAttachments referencing any of those records
+      await tx.proofAttachment.deleteMany({
+        where: { recordId: { in: allRecordIds } },
+      });
+
+      // 0c. Delete AlertLogs for these admissions
+      await tx.alertLog.deleteMany({
+        where: { admissionId: { in: admissionIds } },
+      });
+
       // 1. DisinfectionLog (via IsolationProtocol)
       const isolationProtocols = await tx.isolationProtocol.findMany({
         where: { admissionId: { in: admissionIds } },

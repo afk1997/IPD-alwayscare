@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PermanentDeleteButton } from "./permanent-delete-button";
+import { RestoreButton } from "./restore-button";
 import { formatDateTimeIST, formatIST } from "@/lib/date-utils";
 
 interface Admission {
@@ -29,6 +30,7 @@ interface Patient {
 interface ArchivePatientListProps {
   patients: Patient[];
   isAdmin: boolean;
+  isDoctor: boolean;
 }
 
 function conditionBadgeClass(status: string) {
@@ -40,7 +42,7 @@ function conditionBadgeClass(status: string) {
   }
 }
 
-export function ArchivePatientList({ patients, isAdmin }: ArchivePatientListProps) {
+export function ArchivePatientList({ patients, isAdmin, isDoctor }: ArchivePatientListProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   function toggleExpand(id: string) {
@@ -109,6 +111,9 @@ export function ArchivePatientList({ patients, isAdmin }: ArchivePatientListProp
                     </>
                   )}
                 </button>
+                {(isAdmin || isDoctor) && (
+                  <RestoreButton patientId={patient.id} patientName={patient.name} />
+                )}
                 {isAdmin && (
                   <PermanentDeleteButton patientId={patient.id} patientName={patient.name} />
                 )}

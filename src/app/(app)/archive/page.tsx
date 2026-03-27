@@ -10,6 +10,7 @@ export default async function ArchivePage() {
   if (!session) redirect("/login");
 
   const isAdmin = session.role === "ADMIN";
+  const isDoctor = session.role === "DOCTOR";
 
   const archivedPatients = await db.patient.findMany({
     where: { deletedAt: { not: null } },
@@ -33,7 +34,7 @@ export default async function ArchivePage() {
           <p className="text-sm text-muted-foreground">No archived patients</p>
         </div>
       ) : (
-        <ArchivePatientList patients={archivedPatients} isAdmin={isAdmin} />
+        <ArchivePatientList patients={archivedPatients} isAdmin={isAdmin} isDoctor={isDoctor} />
       )}
     </div>
   );

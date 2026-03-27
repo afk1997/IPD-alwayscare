@@ -43,6 +43,7 @@ export default async function PatientDetailPage(props: {
         include: { recordedBy: { select: { name: true } } },
       },
       treatmentPlans: {
+        where: { deletedAt: null },
         include: {
           administrations: {
             where: { scheduledDate: today },
@@ -64,6 +65,7 @@ export default async function PatientDetailPage(props: {
         orderBy: { createdAt: "desc" },
       },
       dietPlans: {
+        where: { deletedAt: null },
         include: {
           feedingSchedules: { include: { feedingLogs: { where: { date: today }, orderBy: { date: "desc" } } } },
           createdBy: { select: { name: true } },
