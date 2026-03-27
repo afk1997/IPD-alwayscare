@@ -114,7 +114,7 @@ export async function GET() {
       // --- MEDICATIONS ---
       for (const plan of admission.treatmentPlans) {
         for (const time of plan.scheduledTimes) {
-          const existing = plan.administrations.find((a: any) => a.scheduledTime === time);
+          const existing = plan.administrations.find((a) => a.scheduledTime === time);
           if (existing && (existing.wasAdministered || existing.wasSkipped)) continue;
 
           const [h, m] = time.split(":").map(Number);

@@ -65,7 +65,7 @@ export default async function IsolationWardPage() {
   });
 
   // Aggregate unique PPE across all isolation patients
-  const allPpe = Array.from(
+  const allPpe: string[] = Array.from(
     new Set(
       admissions.flatMap((a: any) => a.isolationProtocol?.ppeRequired ?? [])
     )
@@ -107,10 +107,10 @@ export default async function IsolationWardPage() {
           <div className="flex flex-wrap gap-1.5">
             {allPpe.map((ppe) => (
               <span
-                key={ppe}
+                key={String(ppe)}
                 className="rounded-full border border-red-300 bg-white/80 px-2.5 py-0.5 text-xs font-medium text-red-700"
               >
-                {ppe}
+                {String(ppe)}
               </span>
             ))}
           </div>
@@ -164,7 +164,7 @@ export default async function IsolationWardPage() {
 
             return (
               <div
-                key={admission.id}
+                key={String(admission.id)}
                 className={cn(
                   "rounded-xl border bg-card px-4 py-4 space-y-3 shadow-sm",
                   overdueFlag ? "border-red-300" : "border-border"

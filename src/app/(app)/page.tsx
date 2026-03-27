@@ -184,7 +184,7 @@ export default async function DashboardPage({
         // Filtered view — flat list
         <div className="space-y-3">
           {filteredAdmissions.map((admission) => (
-            <PatientCard key={admission.id} admission={admission} />
+            <PatientCard key={String(admission.id)} admission={admission} />
           ))}
         </div>
       ) : (
@@ -197,7 +197,7 @@ export default async function DashboardPage({
               </p>
               <div className="space-y-3">
                 {generalPatients.map((admission) => (
-                  <PatientCard key={admission.id} admission={admission} />
+                  <PatientCard key={String(admission.id)} admission={admission} />
                 ))}
               </div>
             </section>
@@ -210,7 +210,7 @@ export default async function DashboardPage({
               </p>
               <div className="space-y-3">
                 {isolationPatients.map((admission) => (
-                  <PatientCard key={admission.id} admission={admission} />
+                  <PatientCard key={String(admission.id)} admission={admission} />
                 ))}
               </div>
             </section>
@@ -223,7 +223,7 @@ export default async function DashboardPage({
               </p>
               <div className="space-y-3">
                 {otherPatients.map((admission) => (
-                  <PatientCard key={admission.id} admission={admission} />
+                  <PatientCard key={String(admission.id)} admission={admission} />
                 ))}
               </div>
             </section>

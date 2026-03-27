@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth, requireDoctor } from "@/lib/auth";
 import {
@@ -34,7 +35,7 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
 
     if (!name) return { error: "Patient name is required" };
 
-    const result = await db.$transaction(async (tx: any) => {
+    const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const patient = await tx.patient.create({
         data: {
           name,
@@ -128,7 +129,7 @@ export async function clinicalSetup(admissionId: string, formData: FormData) {
       if (!Array.isArray(feedings)) return { error: "Invalid feeding schedules format" };
     }
 
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       // Check cage uniqueness INSIDE the transaction to avoid race conditions
       const existingCage = await tx.admission.findFirst({
         where: {
@@ -287,7 +288,7 @@ export async function transferWard(admissionId: string, newWard: string, newCage
     });
     if (!admission || admission.deletedAt) return { error: "Admission not found" };
 
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       const existing = await tx.admission.findFirst({
         where: { cageNumber: newCage, status: "ACTIVE", id: { not: admissionId } },
         include: { patient: { select: { name: true } } },
@@ -401,7 +402,7 @@ export async function archivePatient(admissionId: string) {
     if (!admission || admission.deletedAt) return { error: "Admission not found" };
 
     // Soft-delete admission and patient + deactivate plans atomically
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.admission.update({
         where: { id: admissionId },
         data: { deletedAt: new Date() },
@@ -431,7 +432,7 @@ export async function restorePatient(patientId: string) {
   try {
     const session = await requireDoctor();
 
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.patient.update({
         where: { id: patientId },
         data: { deletedAt: null },
@@ -478,7 +479,7 @@ export async function permanentlyDeletePatient(patientId: string) {
     });
     if (!patient) return { error: "Patient not found" };
 
-    const admissionIds = patient.admissions.map((a: any) => a.id);
+    const admissionIds = patient.admissions.map((a) => a.id);
 
     // Prevent deleting patients with active admissions
     const activeAdmissions = await db.admission.findMany({
@@ -488,28 +489,28 @@ export async function permanentlyDeletePatient(patientId: string) {
       return { error: "Cannot permanently delete a patient with active admissions. Archive them first." };
     }
 
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       // 0a. Collect record IDs that ProofAttachments may reference
       const proofTreatmentPlanIds = (await tx.treatmentPlan.findMany({
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
-      })).map((t: any) => t.id);
+      })).map((t) => t.id);
 
       // Proofs for medication administrations are keyed on MedicationAdministration IDs
       const medAdminIds = (await tx.medicationAdministration.findMany({
         where: { treatmentPlanId: { in: proofTreatmentPlanIds } },
         select: { id: true },
-      })).map((a: any) => a.id);
+      })).map((a) => a.id);
 
       const proofVitalIds = (await tx.vitalRecord.findMany({
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
-      })).map((v: any) => v.id);
+      })).map((v) => v.id);
 
       const bathIds = (await tx.bathLog.findMany({
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
-      })).map((b: any) => b.id);
+      })).map((b) => b.id);
 
       const proofFeedingSchedules = await tx.feedingSchedule.findMany({
         where: {
@@ -518,23 +519,23 @@ export async function permanentlyDeletePatient(patientId: string) {
         select: { id: true },
       });
       const feedingLogIds = (await tx.feedingLog.findMany({
-        where: { feedingScheduleId: { in: proofFeedingSchedules.map((s: any) => s.id) } },
+        where: { feedingScheduleId: { in: proofFeedingSchedules.map((s) => s.id) } },
         select: { id: true },
-      })).map((f: any) => f.id);
+      })).map((f) => f.id);
 
       const labIds = (await tx.labResult.findMany({
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
-      })).map((l: any) => l.id);
+      })).map((l) => l.id);
 
       const disinfectionProtos = await tx.isolationProtocol.findMany({
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
       });
       const disinfectionIds = (await tx.disinfectionLog.findMany({
-        where: { isolationProtocolId: { in: disinfectionProtos.map((p: any) => p.id) } },
+        where: { isolationProtocolId: { in: disinfectionProtos.map((p) => p.id) } },
         select: { id: true },
-      })).map((d: any) => d.id);
+      })).map((d) => d.id);
 
       const allRecordIds = [
         ...medAdminIds,
@@ -567,7 +568,7 @@ export async function permanentlyDeletePatient(patientId: string) {
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
       });
-      const isolationIds = isolationProtocols.map((p: any) => p.id);
+      const isolationIds = isolationProtocols.map((p) => p.id);
       await tx.disinfectionLog.deleteMany({ where: { isolationProtocolId: { in: isolationIds } } });
 
       // 2. IsolationProtocol
@@ -578,7 +579,7 @@ export async function permanentlyDeletePatient(patientId: string) {
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
       });
-      const treatmentPlanIds = treatmentPlans.map((p: any) => p.id);
+      const treatmentPlanIds = treatmentPlans.map((p) => p.id);
       await tx.medicationAdministration.deleteMany({ where: { treatmentPlanId: { in: treatmentPlanIds } } });
 
       // 4. TreatmentPlan
@@ -589,7 +590,7 @@ export async function permanentlyDeletePatient(patientId: string) {
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
       });
-      const fluidTherapyIds = fluidTherapies.map((f: any) => f.id);
+      const fluidTherapyIds = fluidTherapies.map((f) => f.id);
       await tx.fluidRateChange.deleteMany({ where: { fluidTherapyId: { in: fluidTherapyIds } } });
 
       // 6. FluidTherapy
@@ -600,12 +601,12 @@ export async function permanentlyDeletePatient(patientId: string) {
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
       });
-      const dietPlanIds = dietPlans.map((d: any) => d.id);
+      const dietPlanIds = dietPlans.map((d) => d.id);
       const feedingSchedules = await tx.feedingSchedule.findMany({
         where: { dietPlanId: { in: dietPlanIds } },
         select: { id: true },
       });
-      const feedingScheduleIds = feedingSchedules.map((s: any) => s.id);
+      const feedingScheduleIds = feedingSchedules.map((s) => s.id);
       await tx.feedingLog.deleteMany({ where: { feedingScheduleId: { in: feedingScheduleIds } } });
 
       // 8. FeedingSchedule
@@ -657,7 +658,7 @@ export async function dischargePatient(admissionId: string, formData: FormData) 
     if (!admission || admission.deletedAt) return { error: "Admission not found" };
 
     // Discharge + deactivate plans atomically
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.admission.update({
         where: { id: admissionId },
         data: {
