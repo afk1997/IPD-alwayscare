@@ -14,6 +14,8 @@ export async function uploadToGoogleDrive(
   const folderQuery = await drive.files.list({
     q: `name='${safeName}' and '${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
     fields: "files(id)",
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
   });
 
   let folderId: string;
@@ -27,6 +29,7 @@ export async function uploadToGoogleDrive(
         parents: [parentFolderId],
       },
       fields: "id",
+      supportsAllDrives: true,
     });
     folderId = folder.data.id!;
   }
@@ -37,12 +40,14 @@ export async function uploadToGoogleDrive(
     requestBody: { name: fileName, parents: [folderId] },
     media: { mimeType, body: Readable.from(file) },
     fields: "id, webViewLink",
+    supportsAllDrives: true,
   });
 
   // Make shareable
   await drive.permissions.create({
     fileId: uploaded.data.id!,
     requestBody: { role: "reader", type: "anyone" },
+    supportsAllDrives: true,
   });
 
   return {
@@ -67,6 +72,8 @@ export async function uploadToGoogleDriveNested(
     const query = await drive.files.list({
       q: `name='${safeName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
       fields: "files(id)",
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
     });
 
     if (query.data.files && query.data.files.length > 0) {
@@ -75,6 +82,7 @@ export async function uploadToGoogleDriveNested(
       const folder = await drive.files.create({
         requestBody: { name: segment, mimeType: "application/vnd.google-apps.folder", parents: [parentId] },
         fields: "id",
+        supportsAllDrives: true,
       });
       parentId = folder.data.id!;
     }
@@ -86,11 +94,13 @@ export async function uploadToGoogleDriveNested(
     requestBody: { name: fileName, parents: [parentId] },
     media: { mimeType, body: Readable.from(file) },
     fields: "id, webViewLink",
+    supportsAllDrives: true,
   });
 
   await drive.permissions.create({
     fileId: uploaded.data.id!,
     requestBody: { role: "reader", type: "anyone" },
+    supportsAllDrives: true,
   });
 
   return { fileId: uploaded.data.id!, shareableLink: uploaded.data.webViewLink! };

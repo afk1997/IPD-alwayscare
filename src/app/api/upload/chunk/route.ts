@@ -60,6 +60,7 @@ export async function PUT(request: NextRequest) {
         await drive.permissions.create({
           fileId: driveFileId,
           requestBody: { role: "reader", type: "anyone" },
+          supportsAllDrives: true,
         });
       } catch (e) {
         console.error("Failed to set file permissions:", e);
@@ -69,6 +70,7 @@ export async function PUT(request: NextRequest) {
       const fileInfo = await drive.files.get({
         fileId: driveFileId,
         fields: "webViewLink",
+        supportsAllDrives: true,
       });
 
       return NextResponse.json({

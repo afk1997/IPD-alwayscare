@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
         const query = await drive.files.list({
           q: `name='${safeName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
           fields: "files(id)",
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
         });
         if (query.data.files && query.data.files.length > 0) {
           parentId = query.data.files[0].id!;
@@ -55,6 +57,7 @@ export async function POST(request: NextRequest) {
                 parents: [parentId],
               },
               fields: "id",
+              supportsAllDrives: true,
             });
             parentId = folder.data.id!;
           } catch {
@@ -62,6 +65,8 @@ export async function POST(request: NextRequest) {
             const retryQuery = await drive.files.list({
               q: `name='${safeName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
               fields: "files(id)",
+              supportsAllDrives: true,
+              includeItemsFromAllDrives: true,
             });
             if (retryQuery.data.files?.length) {
               parentId = retryQuery.data.files[0].id!;
@@ -78,7 +83,7 @@ export async function POST(request: NextRequest) {
     const accessToken = await authClient.getAccessToken();
 
     const initRes = await fetch(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable",
+      "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",
       {
         method: "POST",
         headers: {
