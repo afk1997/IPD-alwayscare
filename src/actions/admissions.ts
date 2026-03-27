@@ -478,7 +478,7 @@ export async function permanentlyDeletePatient(patientId: string) {
     });
     if (!patient) return { error: "Patient not found" };
 
-    const admissionIds = patient.admissions.map((a) => a.id);
+    const admissionIds = patient.admissions.map((a: any) => a.id);
 
     // Prevent deleting patients with active admissions
     const activeAdmissions = await db.admission.findMany({
