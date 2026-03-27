@@ -295,7 +295,7 @@ export function LogsTab({ admission }: LogsTabProps) {
       ) : (
         <div className="space-y-6">
           {groupedByHour.map(([hour, entries]) => {
-            const hourLabel = `${String(hour).padStart(2, "0")}:00 – ${String(hour + 1).padStart(2, "0")}:00`;
+            const hourLabel = `${String(hour).padStart(2, "0")}:00 – ${String((hour + 1) % 24).padStart(2, "0")}:00`;
             return (
               <div key={hour}>
                 {/* Hour header */}

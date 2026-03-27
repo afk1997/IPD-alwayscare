@@ -60,7 +60,7 @@ export function LabForm({ admissionId }: LabFormProps) {
 
     if (result && "error" in result && result.error) {
       toast.error(result.error);
-    } else if (result?.success) {
+    } else {
       toast.success("Lab result added");
       setOpen(false);
       setTestType("");

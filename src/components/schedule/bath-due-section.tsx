@@ -54,12 +54,12 @@ function LogBathSheet({
       const formData = new FormData();
       if (notes) formData.set("notes", notes);
       const result = await logBath(admissionId, formData);
-      if (result?.success) {
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+      } else {
         toast.success(`Bath logged for ${patientName}`);
         setNotes("");
         onOpenChange(false);
-      } else {
-        toast.error("Failed to log bath");
       }
     } catch {
       toast.error("Failed to log bath");

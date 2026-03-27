@@ -67,7 +67,7 @@ export function VitalsForm({ admissionId, lastVitals, patientName = "Patient" }:
     const result = await recordVitals(admissionId, pendingFormData);
     setLoading(false);
 
-    if (result?.success) {
+    if (!(result && "error" in result && result.error)) {
       toast.success("Vitals recorded successfully");
       // Save proofs with the REAL VitalRecord ID from the action response
       const recordId = (result as { id?: string })?.id;

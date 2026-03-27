@@ -17,7 +17,9 @@ export function LogDisinfectionButton({
     setLoading(true);
     try {
       const result = await logDisinfection(protocolId);
-      if (result?.success) {
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+      } else {
         toast.success("Disinfection logged");
       }
     } catch {

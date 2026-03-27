@@ -46,11 +46,9 @@ export async function renameFileInDrive(
 export async function markDeletedInDrive(
   proofs: Array<{ fileId: string | null; fileName: string | null }>
 ): Promise<void> {
-  for (const proof of proofs) {
-    if (!proof.fileId || proof.fileId === "SKIPPED") continue;
-    await renameFileInDrive(
-      proof.fileId,
-      `DELETED - ${proof.fileName ?? "unknown"}`
-    );
-  }
+  await Promise.allSettled(
+    proofs
+      .filter((p) => p.fileId && p.fileId !== "SKIPPED")
+      .map((p) => renameFileInDrive(p.fileId!, `DELETED - ${p.fileName ?? "unknown"}`))
+  );
 }

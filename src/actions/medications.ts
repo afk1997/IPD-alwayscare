@@ -206,6 +206,24 @@ export async function deleteMedication(treatmentPlanId: string) {
     });
     if (!plan) return { error: "Treatment plan not found" };
 
+    // Find all administrations for this plan and rename their proofs in Drive
+    const administrations = await db.medicationAdministration.findMany({
+      where: { treatmentPlanId },
+      select: { id: true },
+    });
+    const adminIds = administrations.map(a => a.id);
+
+    if (adminIds.length > 0) {
+      const proofs = await db.proofAttachment.findMany({
+        where: { recordId: { in: adminIds }, recordType: "MedicationAdministration" },
+        select: { fileId: true, fileName: true },
+      });
+      await markDeletedInDrive(proofs);
+      await db.proofAttachment.deleteMany({
+        where: { recordId: { in: adminIds }, recordType: "MedicationAdministration" },
+      });
+    }
+
     await db.treatmentPlan.update({
       where: { id: treatmentPlanId },
       data: { deletedAt: new Date(), isActive: false },

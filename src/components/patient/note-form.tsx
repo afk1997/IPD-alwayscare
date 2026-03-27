@@ -55,7 +55,7 @@ export function NoteForm({ admissionId }: NoteFormProps) {
 
     if (result && "error" in result && result.error) {
       toast.error(result.error);
-    } else if (result?.success) {
+    } else {
       toast.success("Note added successfully");
       setOpen(false);
       setCategory("");

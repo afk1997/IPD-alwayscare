@@ -739,6 +739,7 @@ export function MedsTab({
 }: MedsTabProps) {
   const [stoppedOpen, setStoppedOpen] = useState(false);
   const [editPlan, setEditPlan] = useState<TreatmentPlan | null>(null);
+  const [stoppingPlanId, setStoppingPlanId] = useState<string | null>(null);
   const today = getTodayIST();
 
   async function handleDeleteMed(planId: string) {
@@ -860,14 +861,19 @@ export function MedsTab({
                     </button>
                     <button
                       type="button"
+                      disabled={!!stoppingPlanId}
                       onClick={async () => {
-                        const result = await stopMedication(plan.id);
-                        if (result && "error" in result && result.error) toast.error(result.error);
-                        else toast.success(`${plan.drugName} stopped`);
+                        setStoppingPlanId(plan.id);
+                        try {
+                          const result = await stopMedication(plan.id);
+                          if (result && "error" in result && result.error) toast.error(result.error);
+                          else toast.success(`${plan.drugName} stopped`);
+                        } catch { toast.error("Failed to stop medication"); }
+                        finally { setStoppingPlanId(null); }
                       }}
-                      className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50"
+                      className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50 disabled:opacity-50"
                     >
-                      Stop
+                      {stoppingPlanId === plan.id ? "..." : "Stop"}
                     </button>
                   </div>
                 )}
