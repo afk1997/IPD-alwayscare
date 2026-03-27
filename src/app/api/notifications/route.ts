@@ -372,7 +372,37 @@ export async function GET() {
       (a, b) => (priority[a.type] ?? 9) - (priority[b.type] ?? 9)
     );
 
-    return NextResponse.json({ notifications, count: notifications.length });
+    // ── Role-based filtering ─────────────────────────────────────────────
+    // Attendant: everything
+    // Paravet:   meds (due + overdue/urgent) + critical vitals/condition
+    // Doctor:    only overdue/urgent (30min+) + critical + pending setups
+    // Admin:     same as attendant
+    const role = session.role;
+    let filtered = notifications;
+
+    if (role === "DOCTOR") {
+      filtered = notifications.filter((n) => {
+        // Doctors see overdue + urgent for everything
+        if (n.type === "overdue" || n.type === "urgent") return true;
+        // Critical vitals and conditions always
+        if (n.type === "critical") return true;
+        // Pending clinical setups
+        if (n.category === "ADMISSION") return true;
+        return false;
+      });
+    } else if (role === "PARAVET") {
+      filtered = notifications.filter((n) => {
+        // Paravets see meds: due + overdue + urgent
+        if (n.category === "MEDS" && (n.type === "due" || n.type === "overdue" || n.type === "urgent" || n.type === "upcoming")) return true;
+        // Critical vitals and conditions
+        if (n.type === "critical") return true;
+        // Everything else filtered out (no food, bath, disinfection, info)
+        return false;
+      });
+    }
+    // ATTENDANT and ADMIN see everything — no filter
+
+    return NextResponse.json({ notifications: filtered, count: filtered.length });
   } catch (error) {
     console.error("[notifications] Failed:", error);
     return NextResponse.json({ notifications: [], count: 0 });
