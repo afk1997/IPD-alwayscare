@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { requireAuth, requireDoctor } from "@/lib/auth";
 import { handleActionError } from "@/lib/action-utils";
+import { markDeletedInDrive } from "@/lib/google-auth";
 
 export async function saveProofAttachments(
   recordId: string,
@@ -47,6 +48,15 @@ export async function getProofAttachments(recordId: string, recordType: string) 
 export async function deleteProofAttachment(attachmentId: string) {
   try {
     await requireDoctor();
+
+    const proof = await db.proofAttachment.findUnique({
+      where: { id: attachmentId },
+      select: { fileId: true, fileName: true },
+    });
+    if (!proof) return { error: "Proof not found" };
+
+    await markDeletedInDrive([proof]);
+
     await db.proofAttachment.delete({ where: { id: attachmentId } });
     return { success: true };
   } catch (error) {

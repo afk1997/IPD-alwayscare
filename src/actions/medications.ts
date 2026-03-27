@@ -6,6 +6,7 @@ import { requireAuth, requireDoctor } from "@/lib/auth";
 import { validateMedRoute, validateFrequency } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
 import { toUTCDate } from "@/lib/date-utils";
+import { markDeletedInDrive } from "@/lib/google-auth";
 
 export async function prescribeMedication(admissionId: string, formData: FormData) {
   try {
@@ -239,6 +240,12 @@ export async function undoAdministration(administrationId: string) {
         notes: `Undone by ${session.name}`,
       },
     });
+
+    const proofs = await db.proofAttachment.findMany({
+      where: { recordId: administrationId, recordType: "MedicationAdministration" },
+      select: { fileId: true, fileName: true },
+    });
+    await markDeletedInDrive(proofs);
 
     await db.proofAttachment.deleteMany({
       where: { recordId: administrationId, recordType: "MedicationAdministration" },

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth, requireDoctor } from "@/lib/auth";
 import { handleActionError } from "@/lib/action-utils";
+import { markDeletedInDrive } from "@/lib/google-auth";
 
 export async function logDisinfection(isolationProtocolId: string) {
   try {
@@ -129,6 +130,16 @@ export async function deleteDisinfectionLog(logId: string) {
       select: { isolationProtocol: { select: { admissionId: true } } },
     });
     if (!log) return { error: "Disinfection log not found" };
+
+    const proofs = await db.proofAttachment.findMany({
+      where: { recordId: logId, recordType: "DisinfectionLog" },
+      select: { fileId: true, fileName: true },
+    });
+    await markDeletedInDrive(proofs);
+
+    await db.proofAttachment.deleteMany({
+      where: { recordId: logId, recordType: "DisinfectionLog" },
+    });
 
     await db.disinfectionLog.delete({ where: { id: logId } });
     revalidatePath("/patients/[admissionId]", "page");

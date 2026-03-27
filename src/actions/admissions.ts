@@ -13,6 +13,7 @@ import {
   validateFrequency,
 } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
+import { markDeletedInDrive } from "@/lib/google-auth";
 
 export async function registerPatient(_prevState: unknown, formData: FormData) {
   try {
@@ -538,7 +539,14 @@ export async function permanentlyDeletePatient(patientId: string) {
         ...disinfectionIds,
       ];
 
-      // 0b. Delete ProofAttachments referencing any of those records
+      // 0b. Rename proof files in Drive before deleting DB records
+      const allProofs = await tx.proofAttachment.findMany({
+        where: { recordId: { in: allRecordIds } },
+        select: { fileId: true, fileName: true },
+      });
+      await markDeletedInDrive(allProofs);
+
+      // Delete ProofAttachments referencing any of those records
       await tx.proofAttachment.deleteMany({
         where: { recordId: { in: allRecordIds } },
       });

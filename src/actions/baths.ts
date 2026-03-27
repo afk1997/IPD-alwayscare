@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth, requireDoctor } from "@/lib/auth";
 import { handleActionError } from "@/lib/action-utils";
+import { markDeletedInDrive } from "@/lib/google-auth";
 
 export async function logBath(admissionId: string, formData: FormData) {
   try {
@@ -61,6 +62,16 @@ export async function deleteBath(bathId: string) {
       select: { admissionId: true },
     });
     if (!bath) return { error: "Bath log not found" };
+
+    const proofs = await db.proofAttachment.findMany({
+      where: { recordId: bathId, recordType: "BathLog" },
+      select: { fileId: true, fileName: true },
+    });
+    await markDeletedInDrive(proofs);
+
+    await db.proofAttachment.deleteMany({
+      where: { recordId: bathId, recordType: "BathLog" },
+    });
 
     await db.bathLog.delete({ where: { id: bathId } });
     revalidatePath("/patients/[admissionId]", "page");

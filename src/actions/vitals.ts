@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireAuth, requireDoctor } from "@/lib/auth";
 import { handleActionError } from "@/lib/action-utils";
+import { markDeletedInDrive } from "@/lib/google-auth";
 
 export async function recordVitals(admissionId: string, formData: FormData) {
   try {
@@ -109,6 +110,16 @@ export async function deleteVitals(vitalId: string) {
       select: { admissionId: true },
     });
     if (!vital) return { error: "Vital record not found" };
+
+    const proofs = await db.proofAttachment.findMany({
+      where: { recordId: vitalId, recordType: "VitalRecord" },
+      select: { fileId: true, fileName: true },
+    });
+    await markDeletedInDrive(proofs);
+
+    await db.proofAttachment.deleteMany({
+      where: { recordId: vitalId, recordType: "VitalRecord" },
+    });
 
     await db.vitalRecord.delete({ where: { id: vitalId } });
     revalidatePath("/patients/[admissionId]", "page");

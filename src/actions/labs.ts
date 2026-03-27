@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireDoctor } from "@/lib/auth";
 import { validateLabTestType } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
+import { markDeletedInDrive } from "@/lib/google-auth";
 
 export async function addLabResult(admissionId: string, formData: FormData) {
   try {
@@ -74,6 +75,16 @@ export async function deleteLabResult(labId: string) {
       select: { admissionId: true },
     });
     if (!lab) return { error: "Lab result not found" };
+
+    const proofs = await db.proofAttachment.findMany({
+      where: { recordId: labId, recordType: "LabResult" },
+      select: { fileId: true, fileName: true },
+    });
+    await markDeletedInDrive(proofs);
+
+    await db.proofAttachment.deleteMany({
+      where: { recordId: labId, recordType: "LabResult" },
+    });
 
     await db.labResult.delete({ where: { id: labId } });
     revalidatePath("/patients/[admissionId]", "page");
