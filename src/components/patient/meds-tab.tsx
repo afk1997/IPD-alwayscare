@@ -27,8 +27,9 @@ import { MedCheckoff } from "./med-checkoff";
 import { FluidCard } from "./fluid-card";
 import { PrescribeMedForm } from "./prescribe-med-form";
 import { stopMedication, updateMedication, deleteMedication } from "@/actions/medications";
-import { startFluidTherapy } from "@/actions/fluids";
+import { startFluidTherapy, updateFluidTherapy, restartFluidTherapy, deleteFluidTherapy } from "@/actions/fluids";
 import { ActionsMenu } from "@/components/ui/actions-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   COMMON_DRUGS,
   ROUTE_LABELS,
@@ -542,59 +543,187 @@ function EditMedSheet({
 
 // ─── Completed Fluids ─────────────────────────────────────────────────────────
 
-function CompletedFluids({ fluids }: { fluids: FluidTherapy[] }) {
+function CompletedFluids({ fluids, isDoctor }: { fluids: FluidTherapy[]; isDoctor: boolean }) {
   const [open, setOpen] = useState(false);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editFluid, setEditFluid] = useState<FluidTherapy | null>(null);
+
+  async function handleRestart(id: string) {
+    setLoadingId(id);
+    try {
+      const result = await restartFluidTherapy(id);
+      if (result && "error" in result && result.error) toast.error(result.error);
+      else toast.success("Fluid therapy restarted");
+    } catch { toast.error("Failed to restart"); }
+    finally { setLoadingId(null); }
+  }
+
+  async function handleDelete(id: string) {
+    setLoadingId(id);
+    setConfirmDeleteId(null);
+    try {
+      const result = await deleteFluidTherapy(id);
+      if (result && "error" in result && result.error) toast.error(result.error);
+      else toast.success("Fluid therapy record deleted");
+    } catch { toast.error("Failed to delete"); }
+    finally { setLoadingId(null); }
+  }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 mb-3">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-2.5 text-left"
-      >
-        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Completed IV Fluids ({fluids.length})
-        </span>
-        <ChevronDown
-          className={cn("h-4 w-4 text-gray-400 transition-transform", open && "rotate-180")}
-        />
-      </button>
-      {open && (
-        <div className="border-t border-gray-200 px-4 py-2 space-y-2">
-          {fluids.map((f) => (
-            <div key={f.id} className="rounded-md border border-gray-100 bg-white px-3 py-2">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    {f.fluidType} @ {f.rate}
-                  </p>
-                  {f.additives && (
-                    <p className="text-xs text-gray-500">Additives: {f.additives}</p>
-                  )}
-                  <p className="text-xs text-gray-400">
-                    Started: {formatDateTimeIST(new Date(f.startTime))}
-                    {f.endTime && ` → Stopped: ${formatDateTimeIST(new Date(f.endTime))}`}
-                  </p>
-                  <p className="text-xs text-gray-300">By {f.createdBy.name}</p>
-                </div>
-              </div>
-              {f.rateChanges.length > 0 && (
-                <div className="mt-1.5 border-t border-gray-100 pt-1.5">
-                  <p className="text-xs font-medium text-gray-400 mb-1">Rate changes:</p>
-                  {f.rateChanges.map((rc) => (
-                    <p key={rc.id} className="text-xs text-gray-400">
-                      {rc.oldRate} → {rc.newRate}
-                      {rc.reason && ` (${rc.reason})`}
-                      {" · "}{rc.changedBy.name}
+    <>
+      <div className="rounded-lg border border-gray-200 bg-gray-50 mb-3">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-2.5 text-left"
+        >
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            Completed IV Fluids ({fluids.length})
+          </span>
+          <ChevronDown
+            className={cn("h-4 w-4 text-gray-400 transition-transform", open && "rotate-180")}
+          />
+        </button>
+        {open && (
+          <div className="border-t border-gray-200 px-4 py-2 space-y-2">
+            {fluids.map((f) => (
+              <div key={f.id} className="rounded-md border border-gray-100 bg-white px-3 py-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-700">
+                      {f.fluidType} @ {f.rate}
                     </p>
-                  ))}
+                    {f.additives && (
+                      <p className="text-xs text-gray-500">Additives: {f.additives}</p>
+                    )}
+                    <p className="text-xs text-gray-400">
+                      Started: {formatDateTimeIST(new Date(f.startTime))}
+                      {f.endTime && ` → Stopped: ${formatDateTimeIST(new Date(f.endTime))}`}
+                    </p>
+                    {f.notes && <p className="text-xs text-gray-400 italic">{f.notes}</p>}
+                    <p className="text-xs text-gray-300">By {f.createdBy.name}</p>
+                  </div>
+
+                  {isDoctor && (
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleRestart(f.id)}
+                        disabled={!!loadingId}
+                        className="rounded-md border border-green-200 px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-50 disabled:opacity-50"
+                      >
+                        Restart
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditFluid(f)}
+                        disabled={!!loadingId}
+                        className="rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(f.id)}
+                        disabled={!!loadingId}
+                        className="rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-500 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
+                {f.rateChanges.length > 0 && (
+                  <div className="mt-1.5 border-t border-gray-100 pt-1.5">
+                    <p className="text-xs font-medium text-gray-400 mb-1">Rate changes:</p>
+                    {f.rateChanges.map((rc) => (
+                      <p key={rc.id} className="text-xs text-gray-400">
+                        {rc.oldRate} → {rc.newRate}
+                        {rc.reason && ` (${rc.reason})`}
+                        {" · "}{rc.changedBy.name}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Delete confirmation */}
+      {confirmDeleteId && (
+        <Dialog open={!!confirmDeleteId} onOpenChange={(v) => { if (!v) setConfirmDeleteId(null); }}>
+          <DialogContent className="max-w-xs">
+            <DialogHeader>
+              <DialogTitle>Delete fluid therapy record?</DialogTitle>
+              <p className="text-sm text-gray-500 mt-1">This will be logged in clinical notes as an audit trail.</p>
+            </DialogHeader>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => setConfirmDeleteId(null)} disabled={!!loadingId}>Cancel</Button>
+              <Button variant="destructive" className="flex-1" onClick={() => handleDelete(confirmDeleteId)} disabled={!!loadingId}>
+                {loadingId ? "Deleting..." : "Delete"}
+              </Button>
             </div>
-          ))}
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
-    </div>
+
+      {/* Edit sheet for completed fluid */}
+      {editFluid && (
+        <EditCompletedFluidSheet fluid={editFluid} open={!!editFluid} onOpenChange={(v) => { if (!v) setEditFluid(null); }} />
+      )}
+    </>
+  );
+}
+
+function EditCompletedFluidSheet({ fluid, open, onOpenChange }: { fluid: FluidTherapy; open: boolean; onOpenChange: (v: boolean) => void }) {
+  const [loading, setLoading] = useState(false);
+  const [fluidType, setFluidType] = useState(fluid.fluidType);
+  const [additives, setAdditives] = useState(fluid.additives ?? "");
+  const [notes, setNotes] = useState(fluid.notes ?? "");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!fluidType) return;
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.set("fluidType", fluidType);
+      formData.set("additives", additives);
+      formData.set("notes", notes);
+      const result = await updateFluidTherapy(fluid.id, formData);
+      if (result && "error" in result && result.error) toast.error(result.error);
+      else { toast.success("Fluid therapy updated"); onOpenChange(false); }
+    } catch { toast.error("Failed to update"); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto pb-8">
+        <SheetHeader><SheetTitle>Edit Fluid Therapy</SheetTitle></SheetHeader>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4 px-1">
+          <div className="space-y-1.5">
+            <Label>Fluid Type *</Label>
+            <Input value={fluidType} onChange={(e) => setFluidType(e.target.value)} required className="h-12" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Additives</Label>
+            <Input value={additives} onChange={(e) => setAdditives(e.target.value)} className="h-12" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Notes</Label>
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
+            <Button type="submit" className="flex-1" disabled={loading}>{loading ? "Saving..." : "Save Changes"}</Button>
+          </div>
+        </form>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -665,7 +794,7 @@ export function MedsTab({
 
       {/* Completed Fluid Therapies */}
       {stoppedFluids.length > 0 && (
-        <CompletedFluids fluids={stoppedFluids} />
+        <CompletedFluids fluids={stoppedFluids} isDoctor={isDoctor} />
       )}
 
       {/* Medications header */}
