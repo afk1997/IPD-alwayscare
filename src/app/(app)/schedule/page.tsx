@@ -158,7 +158,7 @@ export default async function SchedulePage() {
     for (const plan of admission.treatmentPlans) {
       for (const scheduledTime of plan.scheduledTimes) {
         const administration =
-          plan.administrations.find((a) => a.scheduledTime === scheduledTime) ??
+          plan.administrations.find((a: any) => a.scheduledTime === scheduledTime) ??
           null;
 
         allTasks.push({

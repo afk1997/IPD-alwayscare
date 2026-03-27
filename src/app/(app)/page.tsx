@@ -65,25 +65,25 @@ export default async function DashboardPage({
     orderBy: { admissionDate: "desc" },
   });
 
-  const activeAdmissions = admissions.filter((a) => a.status === "ACTIVE");
+  const activeAdmissions = admissions.filter((a: any) => a.status === "ACTIVE");
   const registeredAdmissions = admissions.filter(
-    (a) => a.status === "REGISTERED"
+    (a: any) => a.status === "REGISTERED"
   );
   const isolationAdmissions = activeAdmissions.filter(
-    (a) => a.ward === "ISOLATION"
+    (a: any) => a.ward === "ISOLATION"
   );
 
   // Compute summary stats
   const criticalCount = activeAdmissions.filter(
-    (a) => a.condition === "CRITICAL"
+    (a: any) => a.condition === "CRITICAL"
   ).length;
 
-  const pendingMedsCount = activeAdmissions.reduce((sum, a) => {
-    return sum + a.treatmentPlans.reduce((planSum, plan) => {
+  const pendingMedsCount = activeAdmissions.reduce((sum: number, a: any) => {
+    return sum + a.treatmentPlans.reduce((planSum: number, plan: any) => {
       if (!plan.isActive) return planSum;
       const totalSlots = plan.scheduledTimes.length;
       const doneSlots = plan.administrations.filter(
-        (adm) => adm.wasAdministered || adm.wasSkipped
+        (adm: any) => adm.wasAdministered || adm.wasSkipped
       ).length;
       return planSum + Math.max(0, totalSlots - doneSlots);
     }, 0);
@@ -94,11 +94,11 @@ export default async function DashboardPage({
   const twoHoursLater = new Date(Date.now() + 2 * 60 * 60 * 1000);
   const laterTimeStr = formatInTimeZone(twoHoursLater, "Asia/Kolkata", "HH:mm");
 
-  const feedingsCount = activeAdmissions.reduce((sum, a) => {
+  const feedingsCount = activeAdmissions.reduce((sum: number, a: any) => {
     return (
       sum +
-      a.dietPlans.reduce((planSum, plan) => {
-        const upcoming = plan.feedingSchedules.filter((s) => {
+      a.dietPlans.reduce((planSum: number, plan: any) => {
+        const upcoming = plan.feedingSchedules.filter((s: any) => {
           if (laterTimeStr < nowTimeStr) {
             // Crosses midnight: show feedings from now to midnight OR midnight to laterTime
             return s.scheduledTime >= nowTimeStr || s.scheduledTime <= laterTimeStr;
@@ -110,7 +110,7 @@ export default async function DashboardPage({
     );
   }, 0);
 
-  const bathsDueCount = activeAdmissions.filter((a) => {
+  const bathsDueCount = activeAdmissions.filter((a: any) => {
     const ref =
       a.bathLogs.length > 0 ? a.bathLogs[0].bathedAt : a.admissionDate;
     return isBathDue(ref).isDue;
@@ -125,7 +125,7 @@ export default async function DashboardPage({
   };
 
   // Sort active admissions: CRITICAL first, then by admissionDate desc
-  const sortedActive = [...activeAdmissions].sort((a, b) => {
+  const sortedActive = [...activeAdmissions].sort((a: any, b: any) => {
     const aIsCritical = a.condition === "CRITICAL" ? 0 : 1;
     const bIsCritical = b.condition === "CRITICAL" ? 0 : 1;
     if (aIsCritical !== bIsCritical) return aIsCritical - bIsCritical;
@@ -136,16 +136,16 @@ export default async function DashboardPage({
 
   // Group by ward: General first, then Isolation, then others
   const wardOrder = ["GENERAL", "ISOLATION", "ICU"];
-  const generalPatients = sortedActive.filter((a) => a.ward === "GENERAL");
-  const isolationPatients = sortedActive.filter((a) => a.ward === "ISOLATION");
+  const generalPatients = sortedActive.filter((a: any) => a.ward === "GENERAL");
+  const isolationPatients = sortedActive.filter((a: any) => a.ward === "ISOLATION");
   const otherPatients = sortedActive.filter(
-    (a) => a.ward !== "GENERAL" && a.ward !== "ISOLATION"
+    (a: any) => a.ward !== "GENERAL" && a.ward !== "ISOLATION"
   );
 
   // Apply ward filter from URL
   let filteredAdmissions = sortedActive;
   if (wardFilter) {
-    filteredAdmissions = sortedActive.filter(a => a.ward === wardFilter);
+    filteredAdmissions = sortedActive.filter((a: any) => a.ward === wardFilter);
   }
 
   const isDoctor = session.role === "DOCTOR";

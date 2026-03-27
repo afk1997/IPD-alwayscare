@@ -39,7 +39,7 @@ export default async function ClinicalSetupPage({
   const occupiedSet = new Set(
     occupiedCages.map((a: any) => a.cageNumber).filter(Boolean) as string[]
   );
-  const availableCages = cages.filter((c) => !occupiedSet.has(c.cageNumber));
+  const availableCages = cages.filter((c: any) => !occupiedSet.has(c.cageNumber));
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
@@ -50,7 +50,7 @@ export default async function ClinicalSetupPage({
       </p>
       <ClinicalSetupForm
         admissionId={admissionId}
-        availableCages={availableCages.map((c) => ({
+        availableCages={availableCages.map((c: any) => ({
           ward: c.ward,
           cageNumber: c.cageNumber,
         }))}

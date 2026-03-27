@@ -115,8 +115,8 @@ export default async function PatientDetailPage(props: {
       occupiedCages.map((a: any) => a.cageNumber).filter(Boolean) as string[]
     );
     availableCages = allCages
-      .filter((c) => !occupiedSet.has(c.cageNumber))
-      .map((c) => ({ ward: c.ward, cageNumber: c.cageNumber }));
+      .filter((c: any) => !occupiedSet.has(c.cageNumber))
+      .map((c: any) => ({ ward: c.ward, cageNumber: c.cageNumber }));
   }
 
   const isActive = admission.status === "ACTIVE";
