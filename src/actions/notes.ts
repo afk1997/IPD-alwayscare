@@ -22,7 +22,7 @@ export async function addNote(admissionId: string, formData: FormData) {
     await db.clinicalNote.create({
       data: { admissionId, category: validateNoteCategory(category), content, recordedById: session.staffId },
     });
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -48,7 +48,7 @@ export async function updateNote(noteId: string, formData: FormData) {
       data: { category: validateNoteCategory(category), content },
     });
 
-    revalidatePath(`/patients/${note.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -66,7 +66,7 @@ export async function deleteNote(noteId: string) {
     if (!note) return { error: "Note not found" };
 
     await db.clinicalNote.delete({ where: { id: noteId } });
-    revalidatePath(`/patients/${note.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);

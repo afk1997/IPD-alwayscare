@@ -35,7 +35,7 @@ export async function startFluidTherapy(admissionId: string, formData: FormData)
       },
     });
 
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -75,7 +75,7 @@ export async function changeFluidRate(fluidTherapyId: string, formData: FormData
       }),
     ]);
 
-    revalidatePath(`/patients/${fluidTherapy.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -104,7 +104,7 @@ export async function updateFluidTherapy(fluidId: string, formData: FormData) {
       data: { fluidType, additives, notes },
     });
 
-    revalidatePath(`/patients/${fluid.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -131,7 +131,7 @@ export async function stopFluids(fluidTherapyId: string) {
       },
     });
 
-    revalidatePath(`/patients/${fluidTherapy.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {

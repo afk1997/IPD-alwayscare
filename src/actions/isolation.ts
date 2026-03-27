@@ -19,7 +19,7 @@ export async function logDisinfection(isolationProtocolId: string) {
       data: { isolationProtocolId, performedById: session.staffId },
     });
 
-    revalidatePath(`/patients/${protocol.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true };
   } catch (error) {
@@ -66,7 +66,7 @@ export async function updateIsolationProtocol(
       where: { id: protocolId },
       data,
     });
-    revalidatePath(`/patients/${protocol.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true };
   } catch (error) {
@@ -112,7 +112,7 @@ export async function updateIsolationSetup(protocolId: string, formData: FormDat
       },
     });
 
-    revalidatePath(`/patients/${protocol.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true };
   } catch (error) {
@@ -131,7 +131,7 @@ export async function deleteDisinfectionLog(logId: string) {
     if (!log) return { error: "Disinfection log not found" };
 
     await db.disinfectionLog.delete({ where: { id: logId } });
-    revalidatePath(`/patients/${log.isolationProtocol.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true };
   } catch (error) {

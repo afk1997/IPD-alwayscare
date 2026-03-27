@@ -1,6 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { notFound, redirect } from "next/navigation";
+import { toZonedTime } from "date-fns-tz";
+import { startOfDay } from "date-fns";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { PatientHeader } from "@/components/patient/patient-header";
@@ -26,6 +28,10 @@ export default async function PatientDetailPage(props: {
   if (!session) redirect("/login");
   const isDoctor = session.role === "DOCTOR";
 
+  // Compute IST-aware "today" for filtering administrations and feeding logs
+  const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
+  const today = startOfDay(nowIST);
+
   const admission = await db.admission.findUnique({
     where: { id: admissionId, deletedAt: null },
     include: {
@@ -39,6 +45,7 @@ export default async function PatientDetailPage(props: {
       treatmentPlans: {
         include: {
           administrations: {
+            where: { scheduledDate: today },
             orderBy: { scheduledTime: "asc" },
             include: { administeredBy: { select: { name: true } } },
           },
@@ -58,7 +65,7 @@ export default async function PatientDetailPage(props: {
       },
       dietPlans: {
         include: {
-          feedingSchedules: { include: { feedingLogs: { orderBy: { date: "desc" } } } },
+          feedingSchedules: { include: { feedingLogs: { where: { date: today }, orderBy: { date: "desc" } } } },
           createdBy: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },

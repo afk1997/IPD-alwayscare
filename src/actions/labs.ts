@@ -27,7 +27,7 @@ export async function addLabResult(admissionId: string, formData: FormData) {
     await db.labResult.create({
       data: { admissionId, testType: validateLabTestType(testType), testName, result, isAbnormal, notes, reportUrl, createdById: session.staffId },
     });
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -58,7 +58,7 @@ export async function updateLabResult(labId: string, formData: FormData) {
       data: { testType: validateLabTestType(testType), testName, result, isAbnormal, notes, reportUrl },
     });
 
-    revalidatePath(`/patients/${lab.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -76,7 +76,7 @@ export async function deleteLabResult(labId: string) {
     if (!lab) return { error: "Lab result not found" };
 
     await db.labResult.delete({ where: { id: labId } });
-    revalidatePath(`/patients/${lab.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);

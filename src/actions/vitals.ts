@@ -44,7 +44,7 @@ export async function recordVitals(admissionId: string, formData: FormData) {
     if (notes) data.notes = notes;
 
     await db.vitalRecord.create({ data });
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -93,7 +93,7 @@ export async function updateVitals(vitalId: string, formData: FormData) {
     data.notes = notes || null;
 
     await db.vitalRecord.update({ where: { id: vitalId }, data });
-    revalidatePath(`/patients/${vital.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -111,7 +111,7 @@ export async function deleteVitals(vitalId: string) {
     if (!vital) return { error: "Vital record not found" };
 
     await db.vitalRecord.delete({ where: { id: vitalId } });
-    revalidatePath(`/patients/${vital.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);

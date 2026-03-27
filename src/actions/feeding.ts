@@ -61,7 +61,7 @@ export async function createDietPlan(admissionId: string, formData: FormData) {
       },
     });
 
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -80,7 +80,7 @@ export async function logFeeding(feedingScheduleId: string, formData: FormData) 
     if (!status) return { error: "Status is required" };
     if (!dateStr) return { error: "Date is required" };
 
-    const date = new Date(dateStr);
+    const date = new Date(dateStr + "T00:00:00+05:30");
 
     // Find the feeding schedule to get admissionId for revalidation
     const feedingSchedule = await db.feedingSchedule.findUnique({
@@ -109,7 +109,7 @@ export async function logFeeding(feedingScheduleId: string, formData: FormData) 
       },
     });
 
-    revalidatePath(`/patients/${feedingSchedule.dietPlan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -137,7 +137,7 @@ export async function updateFeeding(feedingLogId: string, formData: FormData) {
       data: { status: validateFeedingStatus(status), amountConsumed, notes },
     });
 
-    revalidatePath(`/patients/${feedingLog.feedingSchedule.dietPlan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -155,7 +155,7 @@ export async function deleteFeeding(feedingLogId: string) {
     if (!feedingLog) return { error: "Feeding log not found" };
 
     await db.feedingLog.delete({ where: { id: feedingLogId } });
-    revalidatePath(`/patients/${feedingLog.feedingSchedule.dietPlan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);

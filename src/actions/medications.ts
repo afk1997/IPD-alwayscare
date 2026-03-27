@@ -55,7 +55,7 @@ export async function prescribeMedication(admissionId: string, formData: FormDat
       },
     });
 
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -82,7 +82,7 @@ export async function stopMedication(treatmentPlanId: string) {
       },
     });
 
-    revalidatePath(`/patients/${plan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -105,8 +105,7 @@ export async function administerDose(
 
     if (!plan) return { error: "Treatment plan not found" };
 
-    const scheduledDateObj = new Date(scheduledDate);
-    scheduledDateObj.setHours(0, 0, 0, 0);
+    const scheduledDateObj = new Date(scheduledDate + "T00:00:00+05:30");
 
     await db.medicationAdministration.upsert({
       where: {
@@ -133,7 +132,7 @@ export async function administerDose(
       },
     });
 
-    revalidatePath(`/patients/${plan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -183,7 +182,7 @@ export async function updateMedication(treatmentPlanId: string, formData: FormDa
       },
     });
 
-    revalidatePath(`/patients/${plan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -206,7 +205,7 @@ export async function deleteMedication(treatmentPlanId: string) {
       data: { deletedAt: new Date(), isActive: false },
     });
 
-    revalidatePath(`/patients/${plan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -226,7 +225,7 @@ export async function undoAdministration(administrationId: string) {
 
     await db.medicationAdministration.delete({ where: { id: administrationId } });
 
-    revalidatePath(`/patients/${admin.treatmentPlan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
@@ -252,8 +251,7 @@ export async function skipDose(
 
     if (!plan) return { error: "Treatment plan not found" };
 
-    const scheduledDateObj = new Date(scheduledDate);
-    scheduledDateObj.setHours(0, 0, 0, 0);
+    const scheduledDateObj = new Date(scheduledDate + "T00:00:00+05:30");
 
     await db.medicationAdministration.upsert({
       where: {
@@ -280,7 +278,7 @@ export async function skipDose(
       },
     });
 
-    revalidatePath(`/patients/${plan.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
   } catch (error) {

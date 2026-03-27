@@ -19,7 +19,7 @@ export async function logBath(admissionId: string, formData: FormData) {
     await db.bathLog.create({
       data: { admissionId, bathedById: session.staffId, notes },
     });
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     revalidatePath("/schedule");
     return { success: true };
@@ -45,7 +45,7 @@ export async function updateBath(bathId: string, formData: FormData) {
       data: { notes },
     });
 
-    revalidatePath(`/patients/${bath.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -63,7 +63,7 @@ export async function deleteBath(bathId: string) {
     if (!bath) return { error: "Bath log not found" };
 
     await db.bathLog.delete({ where: { id: bathId } });
-    revalidatePath(`/patients/${bath.admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     revalidatePath("/schedule");
     return { success: true };

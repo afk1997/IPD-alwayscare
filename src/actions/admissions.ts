@@ -268,7 +268,7 @@ export async function updateCondition(admissionId: string, condition: string) {
       where: { id: admissionId },
       data: { condition: validateCondition(condition) },
     });
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     return { success: true };
   } catch (error) {
@@ -301,7 +301,7 @@ export async function transferWard(admissionId: string, newWard: string, newCage
       });
     });
 
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     return { success: true };
   } catch (error) {
@@ -354,7 +354,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     });
 
     revalidatePath("/");
-    if (admission) revalidatePath(`/patients/${admission.id}`);
+    if (admission) revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -381,7 +381,7 @@ export async function updateAdmission(admissionId: string, formData: FormData) {
       data: { diagnosis, chiefComplaint, diagnosisNotes, attendingDoctor },
     });
 
-    revalidatePath(`/patients/${admissionId}`);
+    revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     return { success: true };
   } catch (error) {
