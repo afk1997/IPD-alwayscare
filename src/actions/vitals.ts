@@ -43,9 +43,9 @@ export async function recordVitals(admissionId: string, formData: FormData) {
     const notes = formData.get("notes") as string;
     if (notes) data.notes = notes;
 
-    await db.vitalRecord.create({ data });
+    const vitalRecord = await db.vitalRecord.create({ data });
     revalidatePath("/patients/[admissionId]", "page");
-    return { success: true };
+    return { success: true, id: vitalRecord.id };
   } catch (error) {
     return handleActionError(error);
   }

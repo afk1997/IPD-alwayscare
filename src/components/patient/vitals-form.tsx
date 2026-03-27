@@ -69,11 +69,18 @@ export function VitalsForm({ admissionId, lastVitals, patientName = "Patient" }:
 
     if (result?.success) {
       toast.success("Vitals recorded successfully");
-      const recordId = (result as { id?: string })?.id ?? admissionId;
-      if (proofs.length > 0) {
-        saveProofAttachments(recordId, "VitalRecord", "VITALS", proofs).catch(() => {});
-      } else if (skipReason) {
-        saveSkippedProof(recordId, "VitalRecord", "VITALS", skipReason).catch(() => {});
+      // Save proofs with the REAL VitalRecord ID from the action response
+      const recordId = (result as { id?: string })?.id;
+      if (recordId && proofs.length > 0) {
+        const proofResult = await saveProofAttachments(recordId, "VitalRecord", "VITALS", proofs);
+        if (proofResult && "error" in proofResult && proofResult.error) {
+          toast.warning("Vitals recorded but proof save failed — please retry upload");
+        }
+      } else if (recordId && skipReason) {
+        const proofResult = await saveSkippedProof(recordId, "VitalRecord", "VITALS", skipReason);
+        if (proofResult && "error" in proofResult && proofResult.error) {
+          toast.warning("Vitals recorded but proof save failed — please retry upload");
+        }
       }
       setPendingFormData(null);
       setOpen(false);

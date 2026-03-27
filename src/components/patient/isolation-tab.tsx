@@ -353,9 +353,12 @@ function DisinfectionSection({
         toast.error(result.error);
       } else {
         toast.success("Disinfection logged");
-        const logId = (result as { id?: string })?.id ?? protocol.id;
-        setLastLogId(logId);
-        setProofDialogOpen(true);
+        // Store the REAL DisinfectionLog ID from the action response
+        const logId = (result as { id?: string })?.id;
+        if (logId) {
+          setLastLogId(logId);
+          setProofDialogOpen(true);
+        }
       }
     } catch {
       toast.error("Failed to log disinfection");
@@ -364,15 +367,21 @@ function DisinfectionSection({
     }
   }
 
-  function handleProofComplete(proofs: ProofFile[]) {
+  async function handleProofComplete(proofs: ProofFile[]) {
     if (lastLogId && proofs.length > 0) {
-      saveProofAttachments(lastLogId, "DisinfectionLog", "DISINFECTION", proofs).catch(() => {});
+      const proofResult = await saveProofAttachments(lastLogId, "DisinfectionLog", "DISINFECTION", proofs);
+      if (proofResult && "error" in proofResult && proofResult.error) {
+        toast.warning("Disinfection logged but proof save failed — please retry upload");
+      }
     }
   }
 
-  function handleProofSkip(reason: string) {
+  async function handleProofSkip(reason: string) {
     if (lastLogId) {
-      saveSkippedProof(lastLogId, "DisinfectionLog", "DISINFECTION", reason).catch(() => {});
+      const proofResult = await saveSkippedProof(lastLogId, "DisinfectionLog", "DISINFECTION", reason);
+      if (proofResult && "error" in proofResult && proofResult.error) {
+        toast.warning("Disinfection logged but proof save failed — please retry upload");
+      }
     }
   }
 

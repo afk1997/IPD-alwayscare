@@ -15,13 +15,13 @@ export async function logDisinfection(isolationProtocolId: string) {
     });
     if (!protocol) return { error: "Isolation protocol not found" };
 
-    await db.disinfectionLog.create({
+    const disinfectionLog = await db.disinfectionLog.create({
       data: { isolationProtocolId, performedById: session.staffId },
     });
 
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
-    return { success: true };
+    return { success: true, id: disinfectionLog.id };
   } catch (error) {
     return handleActionError(error);
   }

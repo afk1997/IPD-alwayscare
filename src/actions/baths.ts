@@ -16,13 +16,13 @@ export async function logBath(admissionId: string, formData: FormData) {
     if (!admission || admission.deletedAt) return { error: "Admission not found" };
 
     const notes = (formData.get("notes") as string) || undefined;
-    await db.bathLog.create({
+    const bathLog = await db.bathLog.create({
       data: { admissionId, bathedById: session.staffId, notes },
     });
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     revalidatePath("/schedule");
-    return { success: true };
+    return { success: true, id: bathLog.id };
   } catch (error) {
     return handleActionError(error);
   }

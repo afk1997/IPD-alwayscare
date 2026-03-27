@@ -99,11 +99,13 @@ export function MedCheckoff({
         setOptimisticAdmin(administration);
       } else {
         toast.success("Dose administered");
-        // Save proof attachments (fire-and-forget, get the real administration id from revalidation)
-        if (proofs.length > 0) {
-          // We don't have the real ID yet, use treatmentPlanId+date+time as key
-          const syntheticId = `${treatmentPlan.id}:${scheduledDate}:${scheduledTime}`;
-          saveProofAttachments(syntheticId, "MedicationAdministration", "MEDS", proofs).catch(() => {});
+        // Save proofs with the REAL administration ID from the action response
+        const recordId = (result as { id?: string })?.id;
+        if (recordId && proofs.length > 0) {
+          const proofResult = await saveProofAttachments(recordId, "MedicationAdministration", "MEDS", proofs);
+          if (proofResult && "error" in proofResult && proofResult.error) {
+            toast.warning("Action recorded but proof save failed — please retry upload");
+          }
         }
       }
     } catch {
@@ -135,8 +137,14 @@ export function MedCheckoff({
         setOptimisticAdmin(administration);
       } else {
         toast.success("Dose administered");
-        const syntheticId = `${treatmentPlan.id}:${scheduledDate}:${scheduledTime}`;
-        saveSkippedProof(syntheticId, "MedicationAdministration", "MEDS", reason).catch(() => {});
+        // Save skipped proof with the REAL administration ID from the action response
+        const recordId = (result as { id?: string })?.id;
+        if (recordId) {
+          const proofResult = await saveSkippedProof(recordId, "MedicationAdministration", "MEDS", reason);
+          if (proofResult && "error" in proofResult && proofResult.error) {
+            toast.warning("Action recorded but proof save failed — please retry upload");
+          }
+        }
       }
     } catch {
       toast.error("Failed to record dose");

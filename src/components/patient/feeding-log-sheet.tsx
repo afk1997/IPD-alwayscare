@@ -118,11 +118,18 @@ export function FeedingLogSheet({
         toast.error(result.error);
       } else {
         toast.success("Feeding status recorded");
-        const logId = (result as { id?: string })?.id ?? feedingScheduleId;
-        if (proofs.length > 0) {
-          saveProofAttachments(logId, "FeedingLog", "FOOD", proofs).catch(() => {});
-        } else if (skipReason) {
-          saveSkippedProof(logId, "FeedingLog", "FOOD", skipReason).catch(() => {});
+        // Save proofs with the REAL FeedingLog ID from the action response
+        const logId = (result as { id?: string })?.id;
+        if (logId && proofs.length > 0) {
+          const proofResult = await saveProofAttachments(logId, "FeedingLog", "FOOD", proofs);
+          if (proofResult && "error" in proofResult && proofResult.error) {
+            toast.warning("Feeding logged but proof save failed");
+          }
+        } else if (logId && skipReason) {
+          const proofResult = await saveSkippedProof(logId, "FeedingLog", "FOOD", skipReason);
+          if (proofResult && "error" in proofResult && proofResult.error) {
+            toast.warning("Feeding logged but proof save failed");
+          }
         }
         onLogged?.(selectedStatus);
         onOpenChange(false);

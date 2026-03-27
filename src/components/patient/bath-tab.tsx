@@ -121,11 +121,18 @@ function LogBathSheet({ admissionId, patientName }: { admissionId: string; patie
         toast.error(result.error);
       } else {
         toast.success("Bath logged successfully");
-        const bathId = (result as { id?: string })?.id ?? admissionId;
-        if (proofs.length > 0) {
-          saveProofAttachments(bathId, "BathLog", "BATH", proofs).catch(() => {});
-        } else if (skipReason) {
-          saveSkippedProof(bathId, "BathLog", "BATH", skipReason).catch(() => {});
+        // Save proofs with the REAL BathLog ID from the action response
+        const bathId = (result as { id?: string })?.id;
+        if (bathId && proofs.length > 0) {
+          const proofResult = await saveProofAttachments(bathId, "BathLog", "BATH", proofs);
+          if (proofResult && "error" in proofResult && proofResult.error) {
+            toast.warning("Bath logged but proof save failed — please retry upload");
+          }
+        } else if (bathId && skipReason) {
+          const proofResult = await saveSkippedProof(bathId, "BathLog", "BATH", skipReason);
+          if (proofResult && "error" in proofResult && proofResult.error) {
+            toast.warning("Bath logged but proof save failed — please retry upload");
+          }
         }
         setNotes("");
         setOpen(false);

@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 
-// Only allow proxying to googleapis.com (SSRF protection)
-const ALLOWED_UPLOAD_HOST = "www.googleapis.com";
-
 export async function PUT(request: NextRequest) {
   const session = await getSession();
   if (!session) {
@@ -27,9 +24,9 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // SSRF protection: only allow googleapis.com
+    // SSRF protection: enforce HTTPS, googleapis.com domain, and Drive upload path
     const url = new URL(uploadUri);
-    if (url.hostname !== ALLOWED_UPLOAD_HOST) {
+    if (url.protocol !== "https:" || !url.hostname.endsWith(".googleapis.com") || !url.pathname.startsWith("/upload/drive")) {
       return NextResponse.json({ error: "Invalid upload URI" }, { status: 400 });
     }
 
@@ -59,10 +56,15 @@ export async function PUT(request: NextRequest) {
       const { getGoogleDrive } = await import("@/lib/google-auth");
       const drive = getGoogleDrive();
 
-      await drive.permissions.create({
-        fileId: driveFileId,
-        requestBody: { role: "reader", type: "anyone" },
-      });
+      try {
+        await drive.permissions.create({
+          fileId: driveFileId,
+          requestBody: { role: "reader", type: "anyone" },
+        });
+      } catch (e) {
+        console.error("Failed to set file permissions:", e);
+        // Don't fail — file is uploaded, just not publicly viewable yet
+      }
 
       const fileInfo = await drive.files.get({
         fileId: driveFileId,
