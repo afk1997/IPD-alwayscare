@@ -118,19 +118,31 @@ function DietPlanSheet({
   triggerLabel,
   triggerVariant = "outline",
   triggerClassName,
+  defaultValues,
 }: {
   admissionId: string;
   triggerLabel: React.ReactNode;
   triggerVariant?: "outline" | "default";
   triggerClassName?: string;
+  defaultValues?: {
+    dietType: string;
+    instructions: string | null;
+    feedingSchedules: Array<{ scheduledTime: string; foodType: string; portion: string }>;
+  };
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [dietType, setDietType] = useState("");
-  const [instructions, setInstructions] = useState("");
-  const [schedules, setSchedules] = useState<ScheduleEntry[]>([
-    { scheduledTime: "", foodType: "", portion: "" },
-  ]);
+  const [dietType, setDietType] = useState(defaultValues?.dietType ?? "");
+  const [instructions, setInstructions] = useState(defaultValues?.instructions ?? "");
+  const [schedules, setSchedules] = useState<ScheduleEntry[]>(
+    defaultValues?.feedingSchedules?.length
+      ? defaultValues.feedingSchedules.map((s) => ({
+          scheduledTime: s.scheduledTime,
+          foodType: s.foodType,
+          portion: s.portion,
+        }))
+      : [{ scheduledTime: "", foodType: "", portion: "" }]
+  );
 
   const DIET_SUGGESTIONS = [
     "Regular",
@@ -145,9 +157,17 @@ function DietPlanSheet({
   ];
 
   function resetForm() {
-    setDietType("");
-    setInstructions("");
-    setSchedules([{ scheduledTime: "", foodType: "", portion: "" }]);
+    setDietType(defaultValues?.dietType ?? "");
+    setInstructions(defaultValues?.instructions ?? "");
+    setSchedules(
+      defaultValues?.feedingSchedules?.length
+        ? defaultValues.feedingSchedules.map((s) => ({
+            scheduledTime: s.scheduledTime,
+            foodType: s.foodType,
+            portion: s.portion,
+          }))
+        : [{ scheduledTime: "", foodType: "", portion: "" }]
+    );
   }
 
   function addSchedule() {
@@ -186,7 +206,7 @@ function DietPlanSheet({
       if (result && "error" in result && result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Diet plan created");
+        toast.success(defaultValues ? "Diet plan updated" : "Diet plan created");
         resetForm();
         setOpen(false);
       }
@@ -578,9 +598,18 @@ export function FoodTab({ admissionId, dietPlans, isDoctor, patientName }: FoodT
             {isDoctor && (
               <DietPlanSheet
                 admissionId={admissionId}
-                triggerLabel="Change Diet"
+                triggerLabel="Edit Diet"
                 triggerVariant="outline"
                 triggerClassName="flex-shrink-0 gap-1"
+                defaultValues={{
+                  dietType: activePlan.dietType,
+                  instructions: activePlan.instructions,
+                  feedingSchedules: activePlan.feedingSchedules.map((s) => ({
+                    scheduledTime: s.scheduledTime,
+                    foodType: s.foodType,
+                    portion: s.portion,
+                  })),
+                }}
               />
             )}
           </div>
