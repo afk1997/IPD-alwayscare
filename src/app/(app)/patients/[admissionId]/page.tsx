@@ -119,7 +119,13 @@ export default async function PatientDetailPage(props: {
       {/* Tab content */}
       <div className="p-4">
         {tab === "vitals" && (
-          <VitalsTab admissionId={admissionId} vitals={admission.vitalRecords} isDoctor={isDoctor} />
+          <VitalsTab
+            admissionId={admissionId}
+            vitals={admission.vitalRecords}
+            isDoctor={isDoctor}
+            admissionWeight={admission.patient.weight ?? null}
+            patientName={admission.patient.name}
+          />
         )}
         {tab === "meds" && (
           <MedsTab

@@ -446,3 +446,13 @@ model CageConfig {
 
   @@unique([ward, cageNumber])
 }
+
+model AlertLog {
+  id          String   @id @default(cuid())
+  alertType   String   // MISSED_MED, MISSED_FEEDING, BATH_DUE, CRITICAL_VITALS, DISINFECTION_OVERDUE
+  admissionId String
+  message     String
+  sentAt      DateTime @default(now())
+
+  @@index([admissionId, alertType, sentAt])
+}

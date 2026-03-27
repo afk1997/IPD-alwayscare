@@ -30,6 +30,8 @@ import {
 import { formatDateTimeIST } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { VitalsForm } from "./vitals-form";
+import { VitalsChart } from "./vitals-chart";
+import { WeightAlert } from "./weight-alert";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import { updateVitals, deleteVitals } from "@/actions/vitals";
 
@@ -53,6 +55,8 @@ interface VitalsTabProps {
   admissionId: string;
   vitals: VitalRecord[];
   isDoctor?: boolean;
+  admissionWeight?: number | null;
+  patientName?: string;
 }
 
 function VitalRow({
@@ -204,7 +208,7 @@ function EditVitalsSheet({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function VitalsTab({ admissionId, vitals, isDoctor }: VitalsTabProps) {
+export function VitalsTab({ admissionId, vitals, isDoctor, admissionWeight, patientName }: VitalsTabProps) {
   const latest = vitals[0] ?? null;
   const [editVital, setEditVital] = useState<VitalRecord | null>(null);
 
@@ -267,17 +271,15 @@ export function VitalsTab({ admissionId, vitals, isDoctor }: VitalsTabProps) {
         </Card>
       )}
 
-      {/* 48h trend placeholder */}
-      <Card>
-        <CardHeader className="border-b">
-          <CardTitle>48h Trend</CardTitle>
-        </CardHeader>
-        <CardContent className="py-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            Vitals trend chart — coming in Phase 3
-          </p>
-        </CardContent>
-      </Card>
+      {/* Weight drop alert */}
+      <WeightAlert
+        admissionWeight={admissionWeight ?? null}
+        currentWeight={vitals[0]?.weight ?? null}
+        patientName={patientName ?? "Patient"}
+      />
+
+      {/* Vitals trend chart */}
+      <VitalsChart vitals={vitals} />
 
       {/* Vitals history */}
       {vitals.length > 1 && (

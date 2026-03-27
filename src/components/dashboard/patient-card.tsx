@@ -22,11 +22,13 @@ interface PatientCardProps {
       name: string;
       breed: string | null;
       age: string | null;
+      weight: number | null;
     };
     vitalRecords: Array<{
       temperature: number | null;
       heartRate: number | null;
       recordedAt: Date;
+      weight: number | null;
     }>;
     treatmentPlans: Array<{
       drugName: string;
@@ -62,6 +64,15 @@ export function PatientCard({ admission }: PatientCardProps) {
       ? admission.bathLogs[0].bathedAt
       : admission.admissionDate;
   const bathStatus = isBathDue(bathReference);
+
+  // Weight drop check
+  const admissionWeight = admission.patient.weight;
+  const latestWeight = latestVital?.weight ?? null;
+  const weightDropPercent =
+    admissionWeight != null && latestWeight != null && latestWeight < admissionWeight
+      ? ((admissionWeight - latestWeight) / admissionWeight) * 100
+      : null;
+  const hasWeightDrop = weightDropPercent != null && weightDropPercent > 5;
 
   // Next pending med
   const pendingMed = admission.treatmentPlans
@@ -173,6 +184,11 @@ export function PatientCard({ admission }: PatientCardProps) {
             >
               <Bath className="h-3 w-3" />
               {bathStatus.isOverdue ? "Bath overdue" : "Bath due"}
+            </span>
+          )}
+          {hasWeightDrop && (
+            <span className="flex items-center gap-0.5 rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-clinic-red">
+              ↓ Weight
             </span>
           )}
         </div>
