@@ -110,7 +110,7 @@ export async function administerDose(
 
     const scheduledDateObj = toUTCDate(scheduledDate);
 
-    await db.medicationAdministration.upsert({
+    const administration = await db.medicationAdministration.upsert({
       where: {
         treatmentPlanId_scheduledDate_scheduledTime: {
           treatmentPlanId,
@@ -137,7 +137,7 @@ export async function administerDose(
 
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
-    return { success: true };
+    return { success: true, id: administration.id };
   } catch (error) {
     return handleActionError(error);
   }
@@ -158,6 +158,7 @@ export async function updateMedication(treatmentPlanId: string, formData: FormDa
     const calculatedDose = (formData.get("calculatedDose") as string) || null;
     const route = formData.get("route") as string;
     const frequency = formData.get("frequency") as string;
+    const customFrequency = (formData.get("customFrequency") as string) || undefined;
     const scheduledTimesRaw = formData.get("scheduledTimes") as string;
     const notes = (formData.get("notes") as string) || null;
 
@@ -180,6 +181,7 @@ export async function updateMedication(treatmentPlanId: string, formData: FormDa
         calculatedDose,
         route: validateMedRoute(route),
         frequency: validateFrequency(frequency),
+        customFrequency,
         scheduledTimes,
         notes,
       },
@@ -218,7 +220,7 @@ export async function deleteMedication(treatmentPlanId: string) {
 
 export async function undoAdministration(administrationId: string) {
   try {
-    await requireDoctor();
+    const session = await requireDoctor();
 
     const admin = await db.medicationAdministration.findUnique({
       where: { id: administrationId },
@@ -226,7 +228,17 @@ export async function undoAdministration(administrationId: string) {
     });
     if (!admin) return { error: "Administration record not found" };
 
-    await db.medicationAdministration.delete({ where: { id: administrationId } });
+    await db.medicationAdministration.update({
+      where: { id: administrationId },
+      data: {
+        wasAdministered: false,
+        wasSkipped: false,
+        actualTime: null,
+        administeredById: null,
+        skipReason: null,
+        notes: `Undone by ${session.name}`,
+      },
+    });
 
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");

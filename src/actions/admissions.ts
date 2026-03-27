@@ -248,10 +248,10 @@ export async function clinicalSetup(admissionId: string, formData: FormData) {
     });
 
     revalidatePath("/");
-    redirect(`/patients/${admissionId}`);
   } catch (error) {
     return handleActionError(error);
   }
+  redirect(`/patients/${admissionId}`);
 }
 
 export async function updateCondition(admissionId: string, condition: string) {
@@ -420,15 +420,15 @@ export async function archivePatient(admissionId: string) {
 
     revalidatePath("/");
     revalidatePath("/archive");
-    redirect("/");
   } catch (error) {
     return handleActionError(error);
   }
+  redirect("/");
 }
 
 export async function restorePatient(patientId: string) {
   try {
-    await requireDoctor();
+    const session = await requireDoctor();
 
     await db.$transaction(async (tx) => {
       await tx.patient.update({
@@ -439,6 +439,23 @@ export async function restorePatient(patientId: string) {
         where: { patientId },
         data: { deletedAt: null },
       });
+
+      // Add a clinical note on each restored admission reminding doctor to re-prescribe
+      const admissions = await tx.admission.findMany({
+        where: { patientId },
+        select: { id: true },
+      });
+      for (const adm of admissions) {
+        await tx.clinicalNote.create({
+          data: {
+            admissionId: adm.id,
+            category: "DOCTOR_ROUND",
+            content:
+              "Patient restored from archive. All previous treatment plans, diet plans, and fluid therapies were deactivated during archiving. Doctor must review and re-prescribe as needed.",
+            recordedById: session.staffId,
+          },
+        });
+      }
     });
 
     revalidatePath("/");
@@ -643,8 +660,8 @@ export async function dischargePatient(admissionId: string, formData: FormData) 
     });
 
     revalidatePath("/");
-    redirect("/");
   } catch (error) {
     return handleActionError(error);
   }
+  redirect("/");
 }

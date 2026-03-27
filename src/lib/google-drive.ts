@@ -1,14 +1,4 @@
-import { google } from "googleapis";
-
-function getAuth() {
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  if (!key) throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY not set");
-  const credentials = JSON.parse(Buffer.from(key, "base64").toString());
-  return new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/drive.file"],
-  });
-}
+import { getGoogleDrive } from "@/lib/google-auth";
 
 export async function uploadToGoogleDrive(
   file: Buffer,
@@ -16,8 +6,7 @@ export async function uploadToGoogleDrive(
   mimeType: string,
   subfolder: string
 ): Promise<{ fileId: string; shareableLink: string }> {
-  const auth = getAuth();
-  const drive = google.drive({ version: "v3", auth });
+  const drive = getGoogleDrive();
   const parentFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
   // Find or create subfolder
@@ -68,8 +57,7 @@ export async function uploadToGoogleDriveNested(
   mimeType: string,
   folderPath: string[]
 ): Promise<{ fileId: string; shareableLink: string }> {
-  const auth = getAuth();
-  const drive = google.drive({ version: "v3", auth });
+  const drive = getGoogleDrive();
 
   let parentId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
 

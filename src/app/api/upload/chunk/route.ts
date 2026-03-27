@@ -56,14 +56,8 @@ export async function PUT(request: NextRequest) {
       const driveFileId = data.id as string;
 
       // Make file publicly readable and retrieve the shareable link
-      const { google } = await import("googleapis");
-      const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY!;
-      const credentials = JSON.parse(Buffer.from(key, "base64").toString());
-      const auth = new google.auth.GoogleAuth({
-        credentials,
-        scopes: ["https://www.googleapis.com/auth/drive.file"],
-      });
-      const drive = google.drive({ version: "v3", auth });
+      const { getGoogleDrive } = await import("@/lib/google-auth");
+      const drive = getGoogleDrive();
 
       await drive.permissions.create({
         fileId: driveFileId,

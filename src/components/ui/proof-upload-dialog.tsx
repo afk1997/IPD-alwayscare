@@ -55,6 +55,7 @@ export function ProofUploadDialog({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function reset() {
+    previews.forEach((url) => { if (url && url !== "video") URL.revokeObjectURL(url); });
     setSelectedFiles([]);
     setPreviews([]);
     setUploading(false);

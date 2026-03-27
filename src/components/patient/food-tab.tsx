@@ -238,7 +238,7 @@ function DietPlanSheet({
       </SheetTrigger>
       <SheetContent side="bottom" className="pb-8 max-h-[90vh] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Create Diet Plan</SheetTitle>
+          <SheetTitle>{defaultValues ? "Update Diet Plan" : "Create Diet Plan"}</SheetTitle>
         </SheetHeader>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4 px-1">
           {/* Diet Type */}

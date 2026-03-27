@@ -1,4 +1,4 @@
-const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB chunks (fits under Vercel's 4.5MB body limit)
+const CHUNK_SIZE = 2.5 * 1024 * 1024; // 2.5MB (safe with base64 overhead under Vercel's 4.5MB limit)
 const MAX_RETRIES = 3;
 
 export interface UploadResult {

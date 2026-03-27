@@ -92,7 +92,7 @@ export async function logFeeding(feedingScheduleId: string, formData: FormData) 
     if (!feedingSchedule) return { error: "Feeding schedule not found" };
 
     // Upsert feeding log for today
-    await db.feedingLog.upsert({
+    const feedingLog = await db.feedingLog.upsert({
       where: { feedingScheduleId_date: { feedingScheduleId, date } },
       create: {
         feedingScheduleId,
@@ -111,7 +111,7 @@ export async function logFeeding(feedingScheduleId: string, formData: FormData) 
     });
 
     revalidatePath("/patients/[admissionId]", "page");
-    return { success: true };
+    return { success: true, id: feedingLog.id };
   } catch (error) {
     return handleActionError(error);
   }
@@ -147,7 +147,7 @@ export async function updateFeeding(feedingLogId: string, formData: FormData) {
 
 export async function deleteFeeding(feedingLogId: string) {
   try {
-    await requireDoctor();
+    const session = await requireDoctor();
 
     const feedingLog = await db.feedingLog.findUnique({
       where: { id: feedingLogId },
@@ -155,7 +155,13 @@ export async function deleteFeeding(feedingLogId: string) {
     });
     if (!feedingLog) return { error: "Feeding log not found" };
 
-    await db.feedingLog.delete({ where: { id: feedingLogId } });
+    await db.feedingLog.update({
+      where: { id: feedingLogId },
+      data: {
+        status: "SKIPPED",
+        notes: `Deleted by ${session.name} at ${new Date().toISOString()}`,
+      },
+    });
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {

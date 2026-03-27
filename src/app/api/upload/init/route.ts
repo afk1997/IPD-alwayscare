@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { google } from "googleapis";
-
-function getAuth() {
-  const key = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  if (!key) throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY not set");
-  const credentials = JSON.parse(Buffer.from(key, "base64").toString());
-  return new google.auth.GoogleAuth({
-    credentials,
-    scopes: ["https://www.googleapis.com/auth/drive.file"],
-  });
-}
+import { getGoogleAuth, getGoogleDrive } from "@/lib/google-auth";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -39,8 +29,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const auth = getAuth();
-    const drive = google.drive({ version: "v3", auth });
+    const auth = getGoogleAuth();
+    const drive = getGoogleDrive();
 
     // Create nested folder structure
     let parentId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
@@ -56,15 +46,29 @@ export async function POST(request: NextRequest) {
         if (query.data.files && query.data.files.length > 0) {
           parentId = query.data.files[0].id!;
         } else {
-          const folder = await drive.files.create({
-            requestBody: {
-              name: segment,
-              mimeType: "application/vnd.google-apps.folder",
-              parents: [parentId],
-            },
-            fields: "id",
-          });
-          parentId = folder.data.id!;
+          // Guard against TOCTOU race: another concurrent request may have created the folder
+          try {
+            const folder = await drive.files.create({
+              requestBody: {
+                name: segment,
+                mimeType: "application/vnd.google-apps.folder",
+                parents: [parentId],
+              },
+              fields: "id",
+            });
+            parentId = folder.data.id!;
+          } catch {
+            // Folder may have been created by a concurrent request — re-query
+            const retryQuery = await drive.files.list({
+              q: `name='${safeName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+              fields: "files(id)",
+            });
+            if (retryQuery.data.files?.length) {
+              parentId = retryQuery.data.files[0].id!;
+            } else {
+              throw new Error(`Failed to create folder: ${segment}`);
+            }
+          }
         }
       }
     }
