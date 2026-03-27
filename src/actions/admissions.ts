@@ -472,12 +472,12 @@ export async function permanentlyDeletePatient(patientId: string) {
 
     await db.$transaction(async (tx) => {
       // 0a. Collect record IDs that ProofAttachments may reference
-      const treatmentPlanIds = (await tx.treatmentPlan.findMany({
+      const proofTreatmentPlanIds = (await tx.treatmentPlan.findMany({
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
       })).map((t) => t.id);
 
-      const vitalIds = (await tx.vitalRecord.findMany({
+      const proofVitalIds = (await tx.vitalRecord.findMany({
         where: { admissionId: { in: admissionIds } },
         select: { id: true },
       })).map((v) => v.id);
@@ -487,14 +487,14 @@ export async function permanentlyDeletePatient(patientId: string) {
         select: { id: true },
       })).map((b) => b.id);
 
-      const feedingSchedules = await tx.feedingSchedule.findMany({
+      const proofFeedingSchedules = await tx.feedingSchedule.findMany({
         where: {
           dietPlan: { admissionId: { in: admissionIds } },
         },
         select: { id: true },
       });
       const feedingLogIds = (await tx.feedingLog.findMany({
-        where: { feedingScheduleId: { in: feedingSchedules.map((s) => s.id) } },
+        where: { feedingScheduleId: { in: proofFeedingSchedules.map((s) => s.id) } },
         select: { id: true },
       })).map((f) => f.id);
 
@@ -513,8 +513,8 @@ export async function permanentlyDeletePatient(patientId: string) {
       })).map((d) => d.id);
 
       const allRecordIds = [
-        ...treatmentPlanIds,
-        ...vitalIds,
+        ...proofTreatmentPlanIds,
+        ...proofVitalIds,
         ...bathIds,
         ...feedingLogIds,
         ...labIds,
