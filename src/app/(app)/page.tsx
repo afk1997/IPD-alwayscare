@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { toZonedTime } from "date-fns-tz";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
@@ -93,11 +93,10 @@ export default async function DashboardPage({
     );
   }, 0);
 
-  // Feedings in next ~2 hours
-  const now = new Date();
-  const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
-  const nowTimeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const laterTimeStr = `${String(twoHoursLater.getHours()).padStart(2, "0")}:${String(twoHoursLater.getMinutes()).padStart(2, "0")}`;
+  // Feedings in next ~2 hours (IST-aware)
+  const nowTimeStr = formatInTimeZone(new Date(), "Asia/Kolkata", "HH:mm");
+  const twoHoursLater = new Date(Date.now() + 2 * 60 * 60 * 1000);
+  const laterTimeStr = formatInTimeZone(twoHoursLater, "Asia/Kolkata", "HH:mm");
 
   const feedingsCount = activeAdmissions.reduce((sum, a) => {
     return (

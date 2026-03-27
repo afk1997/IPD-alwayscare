@@ -51,6 +51,6 @@ export function getTodayIST(): string {
 export function isOverdueByMinutes(scheduledTime: string, minutes: number = 30): boolean {
   const now = toIST(new Date());
   const todayStr = formatInTimeZone(new Date(), IST_ZONE, "yyyy-MM-dd");
-  const scheduled = new Date(`${todayStr}T${scheduledTime}:00`);
+  const scheduled = new Date(`${todayStr}T${scheduledTime}:00+05:30`);
   return differenceInMinutes(now, scheduled) > minutes;
 }

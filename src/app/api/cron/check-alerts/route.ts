@@ -7,14 +7,14 @@ import {
   checkHeartRate,
 } from "@/lib/vitals-thresholds";
 import { isBathDue } from "@/lib/date-utils";
-import { toZonedTime } from "date-fns-tz";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 
 // Verify cron secret to prevent unauthorized access
 function verifyCronSecret(request: Request): boolean {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return true; // Allow if no secret configured (dev)
+  if (!cronSecret) return process.env.NODE_ENV !== "production";
   return authHeader === `Bearer ${cronSecret}`;
 }
 
@@ -77,9 +77,8 @@ export async function GET(request: Request) {
     for (const plan of admission.treatmentPlans) {
       for (const admin of plan.administrations) {
         const scheduledStr = admin.scheduledTime;
-        const [hours, mins] = scheduledStr.split(":").map(Number);
-        const scheduledTime = new Date(today);
-        scheduledTime.setHours(hours, mins, 0, 0);
+        const todayStr = formatInTimeZone(new Date(), "Asia/Kolkata", "yyyy-MM-dd");
+        const scheduledTime = new Date(`${todayStr}T${scheduledStr}:00+05:30`);
         const minutesOverdue = Math.floor(
           (Date.now() - scheduledTime.getTime()) / 60000
         );
