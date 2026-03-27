@@ -5,9 +5,17 @@ import { toast } from "sonner";
 import { Check, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { administerDose } from "@/actions/medications";
+import { saveProofAttachments, saveSkippedProof } from "@/actions/proof";
 import { WARD_CONFIG } from "@/lib/constants";
 import { isOverdueByMinutes, formatTimeIST } from "@/lib/date-utils";
 import { MedSkipSheet } from "@/components/patient/med-skip-sheet";
+import { ProofUploadDialog } from "@/components/ui/proof-upload-dialog";
+
+interface ProofFile {
+  fileUrl: string;
+  fileId: string;
+  fileName: string;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,6 +74,7 @@ export function ScheduleMedRow({
   >(administration);
   const [checkLoading, setCheckLoading] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
+  const [proofDialogOpen, setProofDialogOpen] = useState(false);
 
   const isAdministered = optimisticAdmin?.wasAdministered === true;
   const isSkipped = optimisticAdmin?.wasSkipped === true;
@@ -77,8 +86,12 @@ export function ScheduleMedRow({
   const wardConfig = WARD_CONFIG[ward] ?? WARD_CONFIG.GENERAL;
   const routeAbbr = ROUTE_ABBR[treatmentPlan.route] ?? treatmentPlan.route;
 
-  async function handleCheck() {
+  function handleCheck() {
     if (isAdministered || checkLoading) return;
+    setProofDialogOpen(true);
+  }
+
+  async function handleProofComplete(proofs: ProofFile[]) {
     setCheckLoading(true);
     setOptimisticAdmin({
       id: "optimistic",
@@ -89,16 +102,64 @@ export function ScheduleMedRow({
       administeredBy: null,
     });
     try {
-      const result = await administerDose(
-        treatmentPlan.id,
-        scheduledDate,
-        scheduledTime
-      );
+      const result = await administerDose(treatmentPlan.id, scheduledDate, scheduledTime);
       if (result && "error" in result && result.error) {
         toast.error(result.error);
         setOptimisticAdmin(administration);
       } else {
         toast.success("Dose administered");
+        const recordId = (result as { id?: string })?.id;
+        if (recordId) {
+          setOptimisticAdmin({
+            id: recordId,
+            wasAdministered: true,
+            wasSkipped: false,
+            skipReason: null,
+            actualTime: new Date(),
+            administeredBy: null,
+          });
+          if (proofs.length > 0) {
+            await saveProofAttachments(recordId, "MedicationAdministration", "MEDS", proofs);
+          }
+        }
+      }
+    } catch {
+      toast.error("Failed to record dose");
+      setOptimisticAdmin(administration);
+    } finally {
+      setCheckLoading(false);
+    }
+  }
+
+  async function handleProofSkip(reason: string) {
+    setCheckLoading(true);
+    setOptimisticAdmin({
+      id: "optimistic",
+      wasAdministered: true,
+      wasSkipped: false,
+      skipReason: null,
+      actualTime: new Date(),
+      administeredBy: null,
+    });
+    try {
+      const result = await administerDose(treatmentPlan.id, scheduledDate, scheduledTime);
+      if (result && "error" in result && result.error) {
+        toast.error(result.error);
+        setOptimisticAdmin(administration);
+      } else {
+        toast.success("Dose administered");
+        const recordId = (result as { id?: string })?.id;
+        if (recordId) {
+          setOptimisticAdmin({
+            id: recordId,
+            wasAdministered: true,
+            wasSkipped: false,
+            skipReason: null,
+            actualTime: new Date(),
+            administeredBy: null,
+          });
+          await saveSkippedProof(recordId, "MedicationAdministration", "MEDS", reason);
+        }
       }
     } catch {
       toast.error("Failed to record dose");
@@ -157,17 +218,9 @@ export function ScheduleMedRow({
           </span>
         </button>
 
-        {/* Med info with patient — tap to open skip sheet */}
-        <button
-          type="button"
-          onClick={() => {
-            if (!isAdministered && !isSkipped) setSkipOpen(true);
-          }}
-          disabled={isAdministered || isSkipped}
-          className={cn(
-            "flex min-w-0 flex-1 flex-col text-left",
-            !isAdministered && !isSkipped ? "cursor-pointer" : "cursor-default"
-          )}
+        {/* Med info with patient */}
+        <div
+          className="flex min-w-0 flex-1 flex-col text-left"
         >
           {/* Patient name + ward badge */}
           <div className="flex items-center gap-1.5 mb-0.5">
@@ -221,7 +274,19 @@ export function ScheduleMedRow({
               {optimisticAdmin.skipReason}
             </span>
           )}
-        </button>
+        </div>
+
+        {/* Skip button — dedicated, no accidental triggers */}
+        {!isAdministered && !isSkipped && (
+          <button
+            type="button"
+            onClick={() => setSkipOpen(true)}
+            disabled={checkLoading}
+            className="flex-shrink-0 rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+          >
+            Skip
+          </button>
+        )}
 
         {/* Overdue indicator */}
         {isOverdue && (
@@ -240,6 +305,16 @@ export function ScheduleMedRow({
         scheduledDate={scheduledDate}
         scheduledTime={scheduledTime}
         onSkipped={handleSkipped}
+      />
+
+      <ProofUploadDialog
+        open={proofDialogOpen}
+        onOpenChange={setProofDialogOpen}
+        onComplete={handleProofComplete}
+        onSkip={handleProofSkip}
+        patientName={patientName}
+        category="MEDS"
+        actionLabel={`${treatmentPlan.drugName} ${treatmentPlan.dose} at ${scheduledTime}`}
       />
     </>
   );

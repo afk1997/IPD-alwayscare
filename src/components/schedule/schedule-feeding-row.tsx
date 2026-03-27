@@ -141,11 +141,13 @@ export function ScheduleFeedingRow({
         open={logOpen}
         onOpenChange={setLogOpen}
         feedingScheduleId={feedingScheduleId}
+        feedingLogId={todayLog?.id}
         scheduledTime={scheduledTime}
         foodType={foodType}
         portion={portion}
         currentStatus={displayStatus}
         onLogged={handleLogged}
+        patientName={patientName}
       />
     </>
   );
