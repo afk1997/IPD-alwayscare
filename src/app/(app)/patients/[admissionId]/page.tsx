@@ -1,10 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { notFound, redirect } from "next/navigation";
-import { toZonedTime } from "date-fns-tz";
-import { startOfDay } from "date-fns";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { getTodayUTCDate } from "@/lib/date-utils";
 import { PatientHeader } from "@/components/patient/patient-header";
 import { TabNav } from "@/components/patient/tab-nav";
 import { DoctorActions } from "@/components/patient/doctor-actions";
@@ -29,8 +28,8 @@ export default async function PatientDetailPage(props: {
   const isDoctor = session.role === "DOCTOR";
 
   // Compute IST-aware "today" for filtering administrations and feeding logs
-  const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
-  const today = startOfDay(nowIST);
+  
+  const today = getTodayUTCDate();
 
   const admission = await db.admission.findUnique({
     where: { id: admissionId, deletedAt: null },

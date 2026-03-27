@@ -6,9 +6,7 @@ import {
   checkTemperature,
   checkHeartRate,
 } from "@/lib/vitals-thresholds";
-import { isBathDue } from "@/lib/date-utils";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
-import { startOfDay } from "date-fns";
+import { isBathDue, getTodayUTCDate, getTodayIST } from "@/lib/date-utils";
 
 // Verify cron secret to prevent unauthorized access
 function verifyCronSecret(request: Request): boolean {
@@ -23,8 +21,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
-  const today = startOfDay(nowIST);
+  
+  const today = getTodayUTCDate();
   const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
   // Fetch all active admissions with relevant data
@@ -77,7 +75,7 @@ export async function GET(request: Request) {
     for (const plan of admission.treatmentPlans) {
       for (const admin of plan.administrations) {
         const scheduledStr = admin.scheduledTime;
-        const todayStr = formatInTimeZone(new Date(), "Asia/Kolkata", "yyyy-MM-dd");
+        const todayStr = getTodayIST();
         const scheduledTime = new Date(`${todayStr}T${scheduledStr}:00+05:30`);
         const minutesOverdue = Math.floor(
           (Date.now() - scheduledTime.getTime()) / 60000

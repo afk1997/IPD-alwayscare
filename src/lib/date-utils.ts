@@ -49,8 +49,31 @@ export function getTodayIST(): string {
 }
 
 export function isOverdueByMinutes(scheduledTime: string, minutes: number = 30): boolean {
-  const now = toIST(new Date());
   const todayStr = formatInTimeZone(new Date(), IST_ZONE, "yyyy-MM-dd");
-  const scheduled = new Date(`${todayStr}T${scheduledTime}:00+05:30`);
-  return differenceInMinutes(now, scheduled) > minutes;
+  const scheduledMs = new Date(`${todayStr}T${scheduledTime}:00+05:30`).getTime();
+  const nowMs = Date.now();
+  return (nowMs - scheduledMs) / 60000 > minutes;
+}
+
+/**
+ * Convert an IST date string (yyyy-MM-dd) to a Date at UTC midnight.
+ * Use this for ALL Prisma @db.Date field reads and writes.
+ * e.g., "2026-03-27" → 2026-03-27T00:00:00.000Z → Prisma stores "2026-03-27"
+ */
+export function toUTCDate(dateStr: string): Date {
+  return new Date(dateStr + "T00:00:00.000Z");
+}
+
+/**
+ * Get today's date (IST) as a UTC Date object for @db.Date queries.
+ */
+export function getTodayUTCDate(): Date {
+  return toUTCDate(getTodayIST());
+}
+
+/**
+ * Get current IST time as HH:mm string.
+ */
+export function getNowTimeIST(): string {
+  return formatInTimeZone(new Date(), IST_ZONE, "HH:mm");
 }

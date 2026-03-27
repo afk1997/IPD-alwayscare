@@ -2,11 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { toZonedTime, formatInTimeZone } from "date-fns-tz";
-import { startOfDay } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { isBathDue } from "@/lib/date-utils";
+import { isBathDue, getTodayUTCDate } from "@/lib/date-utils";
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { IsolationAlert } from "@/components/dashboard/isolation-alert";
 import { PendingSetup } from "@/components/dashboard/pending-setup";
@@ -25,8 +24,8 @@ export default async function DashboardPage({
 
   const { ward: wardFilter } = await searchParams;
 
-  const nowIST = toZonedTime(new Date(), "Asia/Kolkata");
-  const today = startOfDay(nowIST);
+  
+  const today = getTodayUTCDate();
 
   const admissions = await db.admission.findMany({
     where: {

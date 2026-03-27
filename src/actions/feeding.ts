@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireDoctor, requireAuth } from "@/lib/auth";
 import { validateFeedingStatus } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
+import { toUTCDate } from "@/lib/date-utils";
 
 export async function createDietPlan(admissionId: string, formData: FormData) {
   try {
@@ -80,7 +81,7 @@ export async function logFeeding(feedingScheduleId: string, formData: FormData) 
     if (!status) return { error: "Status is required" };
     if (!dateStr) return { error: "Date is required" };
 
-    const date = new Date(dateStr + "T00:00:00+05:30");
+    const date = toUTCDate(dateStr);
 
     // Find the feeding schedule to get admissionId for revalidation
     const feedingSchedule = await db.feedingSchedule.findUnique({

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth, requireDoctor } from "@/lib/auth";
 import { validateMedRoute, validateFrequency } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
+import { toUTCDate } from "@/lib/date-utils";
 
 export async function prescribeMedication(admissionId: string, formData: FormData) {
   try {
@@ -105,7 +106,7 @@ export async function administerDose(
 
     if (!plan) return { error: "Treatment plan not found" };
 
-    const scheduledDateObj = new Date(scheduledDate + "T00:00:00+05:30");
+    const scheduledDateObj = toUTCDate(scheduledDate);
 
     await db.medicationAdministration.upsert({
       where: {
@@ -251,7 +252,7 @@ export async function skipDose(
 
     if (!plan) return { error: "Treatment plan not found" };
 
-    const scheduledDateObj = new Date(scheduledDate + "T00:00:00+05:30");
+    const scheduledDateObj = toUTCDate(scheduledDate);
 
     await db.medicationAdministration.upsert({
       where: {
