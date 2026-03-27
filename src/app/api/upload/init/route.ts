@@ -18,6 +18,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const ALLOWED_TYPES = [
+      "image/jpeg", "image/png", "image/gif", "image/webp",
+      "application/pdf", "video/mp4", "video/quicktime", "video/webm",
+    ];
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB max
+
+    if (!ALLOWED_TYPES.includes(mimeType)) {
+      return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
+    }
+    if (fileSize > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: "File too large. Maximum 100MB." }, { status: 400 });
+    }
+
     // If Google Drive is not configured, signal the client to skip chunked upload
     if (
       !process.env.GOOGLE_SERVICE_ACCOUNT_KEY ||

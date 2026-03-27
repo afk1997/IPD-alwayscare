@@ -41,6 +41,7 @@ enum Condition {
   STABLE
   IMPROVING
   RECOVERED
+  DECEASED
 }
 
 enum MedRoute {

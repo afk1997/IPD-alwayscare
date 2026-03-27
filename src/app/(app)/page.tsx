@@ -143,10 +143,8 @@ export default async function DashboardPage({
 
   // Apply ward filter from URL
   let filteredAdmissions = sortedActive;
-  if (wardFilter === "GENERAL") {
-    filteredAdmissions = generalPatients;
-  } else if (wardFilter === "ISOLATION") {
-    filteredAdmissions = isolationPatients;
+  if (wardFilter) {
+    filteredAdmissions = sortedActive.filter(a => a.ward === wardFilter);
   }
 
   const isDoctor = session.role === "DOCTOR";

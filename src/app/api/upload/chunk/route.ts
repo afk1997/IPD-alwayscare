@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest) {
 
     // SSRF protection: enforce HTTPS, googleapis.com domain, and Drive upload path
     const url = new URL(uploadUri);
-    if (url.protocol !== "https:" || !url.hostname.endsWith(".googleapis.com") || !url.pathname.startsWith("/upload/drive")) {
+    if (url.protocol !== "https:" || url.hostname !== "www.googleapis.com" || !url.pathname.startsWith("/upload/drive")) {
       return NextResponse.json({ error: "Invalid upload URI" }, { status: 400 });
     }
 

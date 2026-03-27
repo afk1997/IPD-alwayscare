@@ -240,6 +240,10 @@ export async function undoAdministration(administrationId: string) {
       },
     });
 
+    await db.proofAttachment.deleteMany({
+      where: { recordId: administrationId, recordType: "MedicationAdministration" },
+    });
+
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
