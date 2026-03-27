@@ -27,6 +27,7 @@ import { MedCheckoff } from "./med-checkoff";
 import { FluidCard } from "./fluid-card";
 import { PrescribeMedForm } from "./prescribe-med-form";
 import { stopMedication, updateMedication, deleteMedication } from "@/actions/medications";
+import { ROUTE_LABELS, FREQUENCY_LABELS } from "@/lib/constants";
 import { startFluidTherapy } from "@/actions/fluids";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 import {
@@ -614,6 +615,80 @@ export function MedsTab({
       {activePlans.length === 0 && (
         <p className="py-6 text-center text-sm text-gray-400">
           No active medications
+        </p>
+      )}
+
+      {/* Active Medications overview cards */}
+      {activePlans.length > 0 && (
+        <div className="mb-4 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            Active Medications
+          </p>
+          {activePlans.map((plan) => (
+            <div
+              key={plan.id}
+              className="rounded-lg border border-gray-200 bg-white px-4 py-3"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-gray-900">
+                    {plan.drugName}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {plan.dose}
+                    {plan.calculatedDose ? ` (${plan.calculatedDose})` : ""}
+                    {" · "}
+                    {ROUTE_LABELS[plan.route] ?? plan.route}
+                    {" · "}
+                    {plan.customFrequency || FREQUENCY_LABELS[plan.frequency] || plan.frequency}
+                  </p>
+                  {plan.scheduledTimes.length > 0 && (
+                    <p className="mt-0.5 text-xs text-gray-400">
+                      Schedule: {plan.scheduledTimes.join(", ")}
+                    </p>
+                  )}
+                  {plan.notes && (
+                    <p className="mt-0.5 text-xs text-gray-400 italic">
+                      {plan.notes}
+                    </p>
+                  )}
+                  <p className="mt-0.5 text-xs text-gray-300">
+                    By {plan.createdBy.name}
+                  </p>
+                </div>
+
+                {isDoctor && (
+                  <div className="flex flex-shrink-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditPlan(plan)}
+                      className="rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const result = await stopMedication(plan.id);
+                        if (result && "error" in result && result.error) toast.error(result.error);
+                        else toast.success(`${plan.drugName} stopped`);
+                      }}
+                      className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-500 hover:bg-red-50"
+                    >
+                      Stop
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Today's Schedule */}
+      {activePlans.length > 0 && timeGroups.length > 0 && (
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+          {"Today's Schedule"}
         </p>
       )}
 
