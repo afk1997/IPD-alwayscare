@@ -10,6 +10,13 @@ const withSerwist = withSerwistInit({
 const nextConfig: NextConfig = {
   reactCompiler: true,
   turbopack: {},
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "50mb",
+    },
+  },
+  middlewareClientMaxBodySize: 50 * 1024 * 1024, // 50MB for file uploads through proxy
+
 };
 
 export default withSerwist(nextConfig);
