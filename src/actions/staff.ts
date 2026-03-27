@@ -40,6 +40,9 @@ export async function createStaff(_prevState: unknown, formData: FormData) {
 
     const existing = await db.staff.findUnique({ where: { phone } });
     if (existing) {
+      if (existing.deletedAt) {
+        return { error: "This phone number belongs to a deleted account. Use a different number." };
+      }
       return { error: "A staff member with this phone number already exists" };
     }
 
@@ -64,6 +67,9 @@ export async function toggleStaffActive(staffId: string) {
     const staff = await db.staff.findUnique({ where: { id: staffId } });
     if (!staff) {
       return { error: "Staff member not found" };
+    }
+    if (staff.deletedAt) {
+      return { error: "Cannot modify a deleted staff member" };
     }
 
     // Prevent privilege escalation: only ADMIN can modify ADMIN accounts
@@ -102,6 +108,9 @@ export async function resetStaffPassword(staffId: string, newPassword: string) {
     const staff = await db.staff.findUnique({ where: { id: staffId } });
     if (!staff) {
       return { error: "Staff member not found" };
+    }
+    if (staff.deletedAt) {
+      return { error: "Cannot modify a deleted staff member" };
     }
 
     // Prevent privilege escalation: only ADMIN can reset ADMIN passwords
@@ -175,6 +184,85 @@ export async function toggleCageActive(cageId: string) {
       where: { id: cageId },
       data: { isActive: !cage.isActive },
     });
+
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function deleteStaff(staffId: string) {
+  try {
+    const session = await requireAuth();
+    if (session.role !== "ADMIN") {
+      return { error: "Forbidden: Admin only" };
+    }
+
+    // Can't delete yourself
+    if (session.staffId === staffId) {
+      return { error: "You cannot delete your own account" };
+    }
+
+    const staff = await db.staff.findUnique({ where: { id: staffId } });
+    if (!staff) {
+      return { error: "Staff member not found" };
+    }
+
+    // Prevent deleting the last active admin
+    if (staff.role === "ADMIN") {
+      const adminCount = await db.staff.count({
+        where: { role: "ADMIN", isActive: true, deletedAt: null, id: { not: staffId } },
+      });
+      if (adminCount === 0) {
+        return { error: "Cannot delete the last active admin" };
+      }
+    }
+
+    // Soft-delete: set deletedAt and deactivate
+    await db.staff.update({
+      where: { id: staffId },
+      data: { deletedAt: new Date(), isActive: false },
+    });
+
+    // Force logout by deleting all sessions
+    await db.session.deleteMany({ where: { staffId } });
+
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function deleteCage(cageId: string) {
+  try {
+    const session = await requireAuth();
+    if (session.role !== "ADMIN") {
+      return { error: "Forbidden: Admin only" };
+    }
+
+    const cage = await db.cageConfig.findUnique({ where: { id: cageId } });
+    if (!cage) {
+      return { error: "Cage not found" };
+    }
+
+    // Check if any active patient is in this cage
+    const occupied = await db.admission.findFirst({
+      where: {
+        ward: cage.ward,
+        cageNumber: cage.cageNumber,
+        status: { in: ["ACTIVE", "REGISTERED"] },
+        deletedAt: null,
+      },
+    });
+
+    if (occupied) {
+      return { error: "Cage is occupied by an active patient. Move the patient first." };
+    }
+
+    // Hard-delete the cage
+    await db.cageConfig.delete({ where: { id: cageId } });
 
     revalidatePath("/admin");
     return { success: true };

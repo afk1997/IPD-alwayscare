@@ -22,6 +22,7 @@ export default async function AdminPage() {
 
   const [staffList, cageList] = await Promise.all([
     db.staff.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
@@ -51,7 +52,7 @@ export default async function AdminPage() {
             Manage staff accounts and cage configuration.
           </p>
         </div>
-        <AdminClient staffList={staffList} cageList={cageList} />
+        <AdminClient staffList={staffList} cageList={cageList} currentUserId={session.staffId} isAdmin={session.role === "ADMIN"} />
       </div>
     </div>
   );

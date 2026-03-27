@@ -15,7 +15,7 @@ export async function login(_prevState: unknown, formData: FormData) {
 
   try {
     const staff = await db.staff.findUnique({ where: { phone } });
-    if (!staff || !staff.isActive) {
+    if (!staff || !staff.isActive || staff.deletedAt) {
       return { error: "Invalid phone number or password" };
     }
 

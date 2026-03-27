@@ -23,12 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Trash2 } from "lucide-react";
 import {
   createStaff,
   toggleStaffActive,
   resetStaffPassword,
   addCage,
   toggleCageActive,
+  deleteStaff,
+  deleteCage,
 } from "@/actions/staff";
 
 type StaffRole = "DOCTOR" | "PARAVET" | "ATTENDANT" | "ADMIN";
@@ -52,6 +55,8 @@ interface CageConfig {
 interface AdminClientProps {
   staffList: StaffMember[];
   cageList: CageConfig[];
+  currentUserId: string;
+  isAdmin: boolean;
 }
 
 const roleColors: Record<StaffRole, string> = {
@@ -204,13 +209,28 @@ function ResetPasswordDialog({ staffId, staffName }: { staffId: string; staffNam
 
 // ── Staff Row ─────────────────────────────────────────────────────────────────
 
-function StaffRow({ staff }: { staff: StaffMember }) {
+function StaffRow({ staff, canDelete }: { staff: StaffMember; canDelete: boolean }) {
   const [pending, setPending] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   async function handleToggle() {
     setPending(true);
     await toggleStaffActive(staff.id);
     setPending(false);
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    const result = await deleteStaff(staff.id);
+    setDeleting(false);
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+    } else {
+      setDeleteOpen(false);
+    }
   }
 
   return (
@@ -236,6 +256,34 @@ function StaffRow({ staff }: { staff: StaffMember }) {
           aria-label={`Toggle ${staff.name} active`}
         />
         <ResetPasswordDialog staffId={staff.id} staffName={staff.name} />
+        {canDelete && (
+          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <DialogTrigger render={
+              <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            } />
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete {staff.name}?</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                This will remove <strong>{staff.name}</strong> from the staff list and log them out. Their name will still appear on historical records.
+              </p>
+              {error && <p className="text-xs text-destructive">{error}</p>}
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
@@ -306,13 +354,28 @@ function AddCageForm() {
 
 // ── Cage Row ──────────────────────────────────────────────────────────────────
 
-function CageRow({ cage }: { cage: CageConfig }) {
+function CageRow({ cage, isAdmin }: { cage: CageConfig; isAdmin: boolean }) {
   const [pending, setPending] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   async function handleToggle() {
     setPending(true);
     await toggleCageActive(cage.id);
     setPending(false);
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    const result = await deleteCage(cage.id);
+    setDeleting(false);
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+    } else {
+      setDeleteOpen(false);
+    }
   }
 
   return (
@@ -336,6 +399,34 @@ function CageRow({ cage }: { cage: CageConfig }) {
           disabled={pending}
           aria-label={`Toggle cage ${cage.cageNumber}`}
         />
+        {isAdmin && (
+          <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+            <DialogTrigger render={
+              <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50 hover:text-red-700">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            } />
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete Cage {cage.cageNumber}?</DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">
+                This will permanently remove <strong>{wardLabels[cage.ward]} — Cage {cage.cageNumber}</strong>. This cannot be undone.
+              </p>
+              {error && <p className="text-xs text-destructive">{error}</p>}
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {deleting ? "Deleting..." : "Delete"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   );
@@ -343,7 +434,7 @@ function CageRow({ cage }: { cage: CageConfig }) {
 
 // ── Main Admin Client ─────────────────────────────────────────────────────────
 
-export function AdminClient({ staffList, cageList }: AdminClientProps) {
+export function AdminClient({ staffList, cageList, currentUserId, isAdmin }: AdminClientProps) {
   const wardGroups: Record<Ward, CageConfig[]> = {
     GENERAL: cageList.filter((c) => c.ward === "GENERAL"),
     ISOLATION: cageList.filter((c) => c.ward === "ISOLATION"),
@@ -373,7 +464,7 @@ export function AdminClient({ staffList, cageList }: AdminClientProps) {
           ) : (
             <div className="space-y-2">
               {staffList.map((s) => (
-                <StaffRow key={s.id} staff={s} />
+                <StaffRow key={s.id} staff={s} canDelete={isAdmin && s.id !== currentUserId} />
               ))}
             </div>
           )}
@@ -403,7 +494,7 @@ export function AdminClient({ staffList, cageList }: AdminClientProps) {
                     </h3>
                     <div className="space-y-2">
                       {cages.map((c) => (
-                        <CageRow key={c.id} cage={c} />
+                        <CageRow key={c.id} cage={c} isAdmin={isAdmin} />
                       ))}
                     </div>
                   </div>

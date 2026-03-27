@@ -40,10 +40,10 @@ export async function getSession() {
     const { payload } = await jwtVerify(token, SECRET);
     const session = await db.session.findUnique({
       where: { id: payload.sid as string },
-      include: { staff: { select: { id: true, name: true, role: true, isActive: true } } },
+      include: { staff: { select: { id: true, name: true, role: true, isActive: true, deletedAt: true } } },
     });
 
-    if (!session || session.expiresAt < new Date() || !session.staff.isActive) {
+    if (!session || session.expiresAt < new Date() || !session.staff.isActive || session.staff.deletedAt) {
       return null;
     }
 
