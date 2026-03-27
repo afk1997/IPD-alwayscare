@@ -114,8 +114,15 @@ export function FeedingLogSheet({
     }
     if (notes) formData.set("notes", notes);
 
-    setPendingFormData(formData);
-    setProofDialogOpen(true);
+    if (isAlreadyLogged) {
+      // Editing existing log — save directly without proof dialog
+      setPendingFormData(formData);
+      await submitWithProof([], undefined);
+    } else {
+      // New log — show proof upload dialog
+      setPendingFormData(formData);
+      setProofDialogOpen(true);
+    }
   }
 
   async function submitWithProof(proofs: ProofFile[], skipReason?: string) {
@@ -166,7 +173,7 @@ export function FeedingLogSheet({
       <Sheet open={open} onOpenChange={handleClose}>
         <SheetContent side="bottom" className="pb-8">
           <SheetHeader>
-            <SheetTitle>Log Feeding</SheetTitle>
+            <SheetTitle>{isAlreadyLogged ? "Edit Feeding" : "Log Feeding"}</SheetTitle>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="mt-4 space-y-4 px-1">
             {/* Proof gallery button for already-logged feedings */}
@@ -259,7 +266,7 @@ export function FeedingLogSheet({
                 className="flex-1"
                 disabled={loading || !selectedStatus}
               >
-                {loading ? "Saving..." : "Next: Upload Proof"}
+                {loading ? "Saving..." : isAlreadyLogged ? "Save Changes" : "Next: Upload Proof"}
               </Button>
             </div>
           </form>
