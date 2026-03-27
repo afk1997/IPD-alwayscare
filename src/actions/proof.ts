@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireDoctor } from "@/lib/auth";
 import { handleActionError } from "@/lib/action-utils";
 
 export async function saveProofAttachments(
@@ -24,6 +24,30 @@ export async function saveProofAttachments(
         uploadedById: session.staffId,
       })),
     });
+    return { success: true };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function getProofAttachments(recordId: string, recordType: string) {
+  try {
+    await requireAuth();
+    const proofs = await db.proofAttachment.findMany({
+      where: { recordId, recordType },
+      include: { uploadedBy: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+    return { proofs };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function deleteProofAttachment(attachmentId: string) {
+  try {
+    await requireDoctor();
+    await db.proofAttachment.delete({ where: { id: attachmentId } });
     return { success: true };
   } catch (error) {
     return handleActionError(error);

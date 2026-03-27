@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { administerDose, undoAdministration } from "@/actions/medications";
 import { saveProofAttachments, saveSkippedProof } from "@/actions/proof";
@@ -63,6 +63,7 @@ export function MedCheckoff({
   const [undoLoading, setUndoLoading] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
   const [proofDialogOpen, setProofDialogOpen] = useState(false);
+  const [proofViewOpen, setProofViewOpen] = useState(false);
 
   const isAdministered = optimisticAdmin?.wasAdministered === true;
   const isSkipped = optimisticAdmin?.wasSkipped === true;
@@ -225,16 +226,19 @@ export function MedCheckoff({
           </span>
         </button>
 
-        {/* Med info — tap to open skip sheet */}
+        {/* Med info — tap to open skip sheet or proof viewer */}
         <button
           type="button"
           onClick={() => {
-            if (!isAdministered && !isSkipped) setSkipOpen(true);
+            if (isAdministered || isSkipped) {
+              setProofViewOpen(true);
+            } else {
+              setSkipOpen(true);
+            }
           }}
-          disabled={isAdministered || isSkipped}
           className={cn(
             "flex min-w-0 flex-1 flex-col text-left",
-            !isAdministered && !isSkipped ? "cursor-pointer" : "cursor-default"
+            "cursor-pointer"
           )}
         >
           <span
@@ -267,6 +271,13 @@ export function MedCheckoff({
               {optimisticAdmin.skipReason}
             </span>
           )}
+
+          {(isAdministered || isSkipped) && (
+            <span className="mt-0.5 flex items-center gap-1 text-xs text-gray-400">
+              <Camera className="h-3 w-3" />
+              View proofs
+            </span>
+          )}
         </button>
 
         {/* Undo button (doctor only) */}
@@ -289,7 +300,7 @@ export function MedCheckoff({
         )}
       </div>
 
-      {/* Proof upload dialog */}
+      {/* Proof upload dialog (new action) */}
       <ProofUploadDialog
         open={proofDialogOpen}
         onOpenChange={setProofDialogOpen}
@@ -299,6 +310,28 @@ export function MedCheckoff({
         category="MEDS"
         actionLabel={actionLabel}
       />
+
+      {/* Proof viewer (completed action) */}
+      {optimisticAdmin && !optimisticAdmin.id.startsWith("optimistic") && (
+        <ProofUploadDialog
+          open={proofViewOpen}
+          onOpenChange={setProofViewOpen}
+          mode="view"
+          recordId={optimisticAdmin.id}
+          recordType="MedicationAdministration"
+          category="MEDS"
+          patientName={patientName}
+          actionLabel={actionLabel}
+          isDoctor={isDoctor}
+          onComplete={async (proofs) => {
+            if (proofs.length > 0 && optimisticAdmin?.id) {
+              await saveProofAttachments(optimisticAdmin.id, "MedicationAdministration", "MEDS", proofs);
+              toast.success("Photos added");
+            }
+          }}
+          onSkip={() => {}}
+        />
+      )}
 
       <MedSkipSheet
         open={skipOpen}

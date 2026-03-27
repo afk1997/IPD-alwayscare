@@ -440,6 +440,7 @@ function FeedingRow({
         open={logOpen}
         onOpenChange={setLogOpen}
         feedingScheduleId={schedule.id}
+        feedingLogId={todayLog?.id}
         scheduledTime={schedule.scheduledTime}
         foodType={schedule.foodType}
         portion={schedule.portion}

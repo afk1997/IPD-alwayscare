@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { Camera } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ProofUploadDialog } from "@/components/ui/proof-upload-dialog";
 import {
   Sheet,
   SheetContent,
@@ -211,6 +213,7 @@ function EditVitalsSheet({
 export function VitalsTab({ admissionId, vitals, isDoctor, admissionWeight, patientName }: VitalsTabProps) {
   const latest = vitals[0] ?? null;
   const [editVital, setEditVital] = useState<VitalRecord | null>(null);
+  const [proofVitalId, setProofVitalId] = useState<string | null>(null);
 
   async function handleDelete(vitalId: string) {
     try {
@@ -236,13 +239,24 @@ export function VitalsTab({ admissionId, vitals, isDoctor, admissionWeight, pati
                   {latest.recordedBy && ` · ${latest.recordedBy.name}`}
                 </p>
               </div>
-              {isDoctor && (
-                <ActionsMenu
-                  onEdit={() => setEditVital(latest)}
-                  onDelete={() => handleDelete(latest.id)}
-                  deleteConfirmMessage="Delete this vital record? This action cannot be undone."
-                />
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProofVitalId(latest.id)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-teal-600 transition-colors"
+                  aria-label="View proof photos"
+                >
+                  <Camera className="h-3.5 w-3.5" />
+                  Proofs
+                </button>
+                {isDoctor && (
+                  <ActionsMenu
+                    onEdit={() => setEditVital(latest)}
+                    onDelete={() => handleDelete(latest.id)}
+                    deleteConfirmMessage="Delete this vital record? This action cannot be undone."
+                  />
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-2">
@@ -299,6 +313,7 @@ export function VitalsTab({ admissionId, vitals, isDoctor, admissionWeight, pati
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Pain</th>
                     <th className="text-right px-3 py-2 font-medium text-muted-foreground">Wt</th>
                     <th className="text-left px-3 py-2 font-medium text-muted-foreground">By</th>
+                    <th className="px-1 py-2 w-8"></th>
                     {isDoctor && <th className="px-1 py-2 w-8"></th>}
                   </tr>
                 </thead>
@@ -338,6 +353,16 @@ export function VitalsTab({ admissionId, vitals, isDoctor, admissionWeight, pati
                       <td className="px-3 py-2 text-muted-foreground truncate max-w-[80px]">
                         {v.recordedBy?.name ?? "\u2014"}
                       </td>
+                      <td className="px-1 py-1">
+                        <button
+                          type="button"
+                          onClick={() => setProofVitalId(v.id)}
+                          className="text-gray-300 hover:text-teal-500 transition-colors"
+                          aria-label="View proofs"
+                        >
+                          <Camera className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
                       {isDoctor && (
                         <td className="px-1 py-1">
                           <ActionsMenu
@@ -367,6 +392,23 @@ export function VitalsTab({ admissionId, vitals, isDoctor, admissionWeight, pati
           vital={editVital}
           open={!!editVital}
           onOpenChange={(open) => { if (!open) setEditVital(null); }}
+        />
+      )}
+
+      {/* Proof viewer */}
+      {proofVitalId && (
+        <ProofUploadDialog
+          open={!!proofVitalId}
+          onOpenChange={(open) => { if (!open) setProofVitalId(null); }}
+          mode="view"
+          recordId={proofVitalId}
+          recordType="VitalRecord"
+          category="VITALS"
+          patientName={patientName ?? "Patient"}
+          actionLabel="Vitals record"
+          isDoctor={isDoctor}
+          onComplete={() => {}}
+          onSkip={() => {}}
         />
       )}
     </div>

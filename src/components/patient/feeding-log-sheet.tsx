@@ -17,11 +17,13 @@ import { ProofUploadDialog, type ProofFile } from "@/components/ui/proof-upload-
 import { logFeeding } from "@/actions/feeding";
 import { saveProofAttachments, saveSkippedProof } from "@/actions/proof";
 import { getTodayIST } from "@/lib/date-utils";
+import { Camera } from "lucide-react";
 
 interface FeedingLogSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feedingScheduleId: string;
+  feedingLogId?: string;
   scheduledTime: string;
   foodType: string;
   portion: string;
@@ -58,6 +60,7 @@ export function FeedingLogSheet({
   open,
   onOpenChange,
   feedingScheduleId,
+  feedingLogId,
   scheduledTime,
   foodType,
   portion,
@@ -72,8 +75,14 @@ export function FeedingLogSheet({
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [proofDialogOpen, setProofDialogOpen] = useState(false);
+  const [proofViewOpen, setProofViewOpen] = useState(false);
   // Store pending form data for use after proof dialog
   const [pendingFormData, setPendingFormData] = useState<FormData | null>(null);
+
+  const isAlreadyLogged =
+    currentStatus &&
+    currentStatus !== "PENDING" &&
+    !!feedingLogId;
 
   function resetForm() {
     setSelectedStatus(currentStatus && currentStatus !== "PENDING" ? currentStatus : "");
@@ -160,6 +169,18 @@ export function FeedingLogSheet({
             <SheetTitle>Log Feeding</SheetTitle>
           </SheetHeader>
           <form onSubmit={handleSubmit} className="mt-4 space-y-4 px-1">
+            {/* Proof gallery button for already-logged feedings */}
+            {isAlreadyLogged && (
+              <button
+                type="button"
+                onClick={() => setProofViewOpen(true)}
+                className="flex w-full items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-left hover:bg-gray-100 transition-colors"
+              >
+                <Camera className="h-4 w-4 flex-shrink-0 text-gray-400" />
+                <span className="text-sm text-gray-600">View / add proof photos</span>
+              </button>
+            )}
+
             {/* Feeding info summary */}
             <div className="rounded-lg bg-gray-50 px-3 py-2.5">
               <p className="text-sm font-medium text-gray-900">{foodType}</p>
@@ -254,6 +275,26 @@ export function FeedingLogSheet({
         category="FOOD"
         actionLabel={actionLabel}
       />
+
+      {/* Proof viewer for already-logged feedings */}
+      {isAlreadyLogged && feedingLogId && (
+        <ProofUploadDialog
+          open={proofViewOpen}
+          onOpenChange={setProofViewOpen}
+          mode="view"
+          recordId={feedingLogId}
+          recordType="FeedingLog"
+          category="FOOD"
+          patientName={patientName}
+          actionLabel={actionLabel}
+          onComplete={async (proofs) => {
+            if (proofs.length > 0) {
+              await saveProofAttachments(feedingLogId, "FeedingLog", "FOOD", proofs);
+            }
+          }}
+          onSkip={() => {}}
+        />
+      )}
     </>
   );
 }

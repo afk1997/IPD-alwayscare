@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Droplets, ChevronDown } from "lucide-react";
+import { Droplets, ChevronDown, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { isBathDue, formatDateTimeIST, formatRelative } from "@/lib/date-utils";
@@ -273,7 +273,7 @@ function EditBathSheet({
 
 // ─── Bath History ─────────────────────────────────────────────────────────────
 
-function BathHistory({ bathLogs, isDoctor, onEdit, onDelete }: { bathLogs: BathLog[]; isDoctor?: boolean; onEdit: (bath: BathLog) => void; onDelete: (bathId: string) => void }) {
+function BathHistory({ bathLogs, isDoctor, onEdit, onDelete, onViewProofs }: { bathLogs: BathLog[]; isDoctor?: boolean; onEdit: (bath: BathLog) => void; onDelete: (bathId: string) => void; onViewProofs: (bathId: string) => void }) {
   const [open, setOpen] = useState(false);
 
   if (bathLogs.length === 0) return null;
@@ -312,7 +312,15 @@ function BathHistory({ bathLogs, isDoctor, onEdit, onDelete }: { bathLogs: BathL
                     <p className="mt-0.5 text-xs text-gray-500">{log.notes}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onViewProofs(log.id)}
+                    className="text-gray-300 hover:text-teal-500 transition-colors"
+                    aria-label="View proof photos"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                  </button>
                   <span className="text-xs text-gray-400 whitespace-nowrap">
                     {formatRelative(log.bathedAt)}
                   </span>
@@ -348,6 +356,7 @@ export function BathTab({
   const lastBathLog = bathLogs[0] ?? null;
   const lastBathDate = lastBathLog ? lastBathLog.bathedAt : null;
   const [editBath, setEditBath] = useState<BathLog | null>(null);
+  const [proofBathId, setProofBathId] = useState<string | null>(null);
 
   async function handleDelete(bathId: string) {
     try {
@@ -381,7 +390,7 @@ export function BathTab({
       </div>
 
       {/* Bath history */}
-      <BathHistory bathLogs={bathLogs} isDoctor={isDoctor} onEdit={(bath) => setEditBath(bath)} onDelete={handleDelete} />
+      <BathHistory bathLogs={bathLogs} isDoctor={isDoctor} onEdit={(bath) => setEditBath(bath)} onDelete={handleDelete} onViewProofs={(id) => setProofBathId(id)} />
 
       {/* Edit Bath Sheet */}
       {editBath && (
@@ -389,6 +398,23 @@ export function BathTab({
           bath={editBath}
           open={!!editBath}
           onOpenChange={(open) => { if (!open) setEditBath(null); }}
+        />
+      )}
+
+      {/* Proof viewer */}
+      {proofBathId && (
+        <ProofUploadDialog
+          open={!!proofBathId}
+          onOpenChange={(open) => { if (!open) setProofBathId(null); }}
+          mode="view"
+          recordId={proofBathId}
+          recordType="BathLog"
+          category="BATH"
+          patientName={patientName ?? "Patient"}
+          actionLabel="Bath"
+          isDoctor={isDoctor}
+          onComplete={() => {}}
+          onSkip={() => {}}
         />
       )}
     </div>

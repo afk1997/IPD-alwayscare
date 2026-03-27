@@ -33,7 +33,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { PPE_OPTIONS, DISINFECTION_INTERVALS } from "@/lib/constants";
-import { Trash2 } from "lucide-react";
+import { Trash2, Camera } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -342,6 +342,7 @@ function DisinfectionSection({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [proofDialogOpen, setProofDialogOpen] = useState(false);
   const [lastLogId, setLastLogId] = useState<string | null>(null);
+  const [proofViewLogId, setProofViewLogId] = useState<string | null>(null);
   const recentLogs = protocol.disinfectionLogs.slice(0, 3);
   const hasMore = protocol.disinfectionLogs.length > 3;
 
@@ -423,6 +424,23 @@ function DisinfectionSection({
         actionLabel={`Disinfection with ${protocol.disinfectant}`}
       />
 
+      {/* Proof viewer for existing logs */}
+      {proofViewLogId && (
+        <ProofUploadDialog
+          open={!!proofViewLogId}
+          onOpenChange={(open) => { if (!open) setProofViewLogId(null); }}
+          mode="view"
+          recordId={proofViewLogId}
+          recordType="DisinfectionLog"
+          category="DISINFECTION"
+          patientName={patientName ?? "Patient"}
+          actionLabel={`Disinfection with ${protocol.disinfectant}`}
+          isDoctor={isDoctor}
+          onComplete={() => {}}
+          onSkip={() => {}}
+        />
+      )}
+
       {protocol.disinfectionLogs.length === 0 ? (
         <p className="text-xs text-red-500">No disinfections logged yet</p>
       ) : (
@@ -435,6 +453,14 @@ function DisinfectionSection({
               >
                 <p className="text-xs text-gray-700">{log.performedBy.name}</p>
                 <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setProofViewLogId(log.id)}
+                    className="text-red-300 hover:text-teal-500 transition-colors"
+                    aria-label="View proof photos"
+                  >
+                    <Camera className="h-3 w-3" />
+                  </button>
                   <span className="text-xs text-gray-400 whitespace-nowrap">
                     {formatRelative(log.performedAt)}
                   </span>
@@ -474,6 +500,14 @@ function DisinfectionSection({
                     >
                       <p className="text-xs text-gray-700">{log.performedBy.name}</p>
                       <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setProofViewLogId(log.id)}
+                          className="text-red-300 hover:text-teal-500 transition-colors"
+                          aria-label="View proof photos"
+                        >
+                          <Camera className="h-3 w-3" />
+                        </button>
                         <span className="text-xs text-gray-400 whitespace-nowrap">
                           {formatDateTimeIST(log.performedAt)} IST
                         </span>
