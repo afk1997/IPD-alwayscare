@@ -612,19 +612,18 @@ export async function permanentlyDeletePatient(patientId: string) {
 
     const patient = await db.patient.findUnique({
       where: { id: patientId },
-      select: { id: true, admissions: { select: { id: true } } },
+      select: {
+        id: true,
+        deletedAt: true,
+        admissions: { select: { id: true } },
+      },
     });
     if (!patient) return { error: "Patient not found" };
+    if (!patient.deletedAt) {
+      return { error: "Only archived patients can be permanently deleted" };
+    }
 
     const admissionIds = patient.admissions.map((a: any) => a.id);
-
-    // Prevent deleting patients with active admissions
-    const activeAdmissions = await db.admission.findMany({
-      where: { patientId, deletedAt: null, status: { in: ["ACTIVE", "REGISTERED"] } },
-    });
-    if (activeAdmissions.length > 0) {
-      return { error: "Cannot permanently delete a patient with active admissions. Archive them first." };
-    }
 
     await db.$transaction(async (tx: any) => {
       // 0a. Collect record IDs that ProofAttachments may reference

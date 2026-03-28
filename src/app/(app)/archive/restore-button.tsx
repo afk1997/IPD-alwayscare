@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ interface RestoreButtonProps {
 }
 
 export function RestoreButton({ patientId, patientName }: RestoreButtonProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleRestore() {
@@ -22,6 +24,7 @@ export function RestoreButton({ patientId, patientName }: RestoreButtonProps) {
         toast.error(result.error);
       } else {
         toast.success(`${patientName} restored`);
+        router.refresh();
       }
     } catch {
       toast.error("Failed to restore patient");

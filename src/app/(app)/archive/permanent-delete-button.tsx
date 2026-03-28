@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface PermanentDeleteButtonProps {
 }
 
 export function PermanentDeleteButton({ patientId, patientName }: PermanentDeleteButtonProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +35,7 @@ export function PermanentDeleteButton({ patientId, patientName }: PermanentDelet
       } else {
         toast.success(`${patientName} permanently deleted`);
         setOpen(false);
+        router.refresh();
       }
     } catch {
       toast.error("Failed to delete patient");
