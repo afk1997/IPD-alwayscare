@@ -208,6 +208,9 @@ export async function deleteStaff(staffId: string) {
     if (!staff) {
       return { error: "Staff member not found" };
     }
+    if (staff.deletedAt) {
+      return { error: "Staff member is already deleted" };
+    }
 
     // Prevent deleting the last active admin
     if (staff.role === "ADMIN") {
@@ -219,14 +222,14 @@ export async function deleteStaff(staffId: string) {
       }
     }
 
-    // Soft-delete: set deletedAt and deactivate
-    await db.staff.update({
-      where: { id: staffId },
-      data: { deletedAt: new Date(), isActive: false },
+    // Soft-delete + session purge in a single transaction
+    await db.$transaction(async (tx: any) => {
+      await tx.staff.update({
+        where: { id: staffId },
+        data: { deletedAt: new Date(), isActive: false },
+      });
+      await tx.session.deleteMany({ where: { staffId } });
     });
-
-    // Force logout by deleting all sessions
-    await db.session.deleteMany({ where: { staffId } });
 
     revalidatePath("/admin");
     return { success: true };

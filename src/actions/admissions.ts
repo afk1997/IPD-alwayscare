@@ -83,8 +83,28 @@ export async function cancelRegistration(admissionId: string) {
     }
 
     await db.$transaction(async (tx: any) => {
+      // Re-verify status inside transaction to prevent race with clinicalSetup
+      const current = await tx.admission.findUnique({
+        where: { id: admissionId },
+        select: { status: true, patientId: true },
+      });
+      if (!current || current.status !== "REGISTERED") {
+        throw new Error("Admission is no longer in REGISTERED status");
+      }
+
+      // Check patient has no other admissions before deleting
+      const otherAdmissions = await tx.admission.count({
+        where: { patientId: current.patientId, id: { not: admissionId } },
+      });
+
+      // Clean up any alert logs for this admission
+      await tx.alertLog.deleteMany({ where: { admissionId } });
       await tx.admission.delete({ where: { id: admissionId } });
-      await tx.patient.delete({ where: { id: admission.patientId } });
+
+      // Only delete patient if no other admissions reference it
+      if (otherAdmissions === 0) {
+        await tx.patient.delete({ where: { id: current.patientId } });
+      }
     });
 
     revalidatePath("/");
@@ -98,41 +118,46 @@ export async function editRegisteredPatient(admissionId: string, formData: FormD
   try {
     await requireAuth();
 
-    const admission = await db.admission.findUnique({
-      where: { id: admissionId },
-      select: { id: true, status: true, patientId: true },
-    });
-    if (!admission) return { error: "Admission not found" };
-    if (admission.status !== "REGISTERED") {
-      return { error: "Only registered (pending setup) patients can be edited here" };
-    }
-
     const name = (formData.get("name") as string)?.trim();
-    const breed = (formData.get("breed") as string) || undefined;
-    const age = (formData.get("age") as string) || undefined;
+    const species = formData.get("species") as string;
+    const breed = (formData.get("breed") as string) || null;
+    const age = (formData.get("age") as string) || null;
     const weightStr = formData.get("weight") as string;
-    const weight = weightStr ? parseFloat(weightStr) : undefined;
+    const weight = weightStr ? parseFloat(weightStr) : null;
     const sex = formData.get("sex") as string;
-    const color = (formData.get("color") as string) || undefined;
+    const color = (formData.get("color") as string) || null;
     const isStray = formData.get("isStray") === "true";
-    const rescueLocation = (formData.get("rescueLocation") as string) || undefined;
-    const rescuerInfo = (formData.get("rescuerInfo") as string) || undefined;
+    const rescueLocation = (formData.get("rescueLocation") as string) || null;
+    const rescuerInfo = (formData.get("rescuerInfo") as string) || null;
 
     if (!name) return { error: "Patient name is required" };
 
-    await db.patient.update({
-      where: { id: admission.patientId },
-      data: {
-        name,
-        breed,
-        age,
-        weight,
-        sex: sex ? validateSex(sex) : undefined,
-        color,
-        isStray,
-        rescueLocation: isStray ? rescueLocation : null,
-        rescuerInfo: isStray ? rescuerInfo : null,
-      },
+    // Verify status + update inside transaction to prevent race with clinicalSetup
+    await db.$transaction(async (tx: any) => {
+      const admission = await tx.admission.findUnique({
+        where: { id: admissionId },
+        select: { id: true, status: true, patientId: true },
+      });
+      if (!admission) throw new Error("Admission not found");
+      if (admission.status !== "REGISTERED") {
+        throw new Error("Only registered (pending setup) patients can be edited here");
+      }
+
+      await tx.patient.update({
+        where: { id: admission.patientId },
+        data: {
+          name,
+          species: species ? validateSpecies(species) : undefined,
+          breed,
+          age,
+          weight,
+          sex: sex ? validateSex(sex) : undefined,
+          color,
+          isStray,
+          rescueLocation: isStray ? rescueLocation : null,
+          rescuerInfo: isStray ? rescuerInfo : null,
+        },
+      });
     });
 
     revalidatePath("/");

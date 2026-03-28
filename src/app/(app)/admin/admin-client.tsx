@@ -192,7 +192,7 @@ function ResetPasswordDialog({ staffId, staffName }: { staffId: string; staffNam
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={4}
+              minLength={8}
             />
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
