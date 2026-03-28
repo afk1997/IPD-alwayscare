@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { uploadFileChunked } from "@/lib/chunked-upload";
+import { driveMediaUrl } from "@/lib/drive-url";
 import { buildDriveFolderPath, buildDriveFileName } from "@/lib/drive-path";
 import {
   savePatientMedia,
@@ -26,6 +27,7 @@ import { formatRelative } from "@/lib/date-utils";
 interface MediaItem {
   id: string;
   fileUrl: string;
+  fileId: string;
   fileName: string;
   mimeType: string;
   isProfilePhoto: boolean;
@@ -109,14 +111,14 @@ function MediaViewerDialog({
         <div className="flex items-center justify-center">
           {isImage && (
             <img
-              src={item.fileUrl}
+              src={driveMediaUrl(item.fileId)}
               alt={item.fileName}
               className="max-h-[80vh] rounded-lg object-contain"
             />
           )}
           {isVideo && (
             <video
-              src={item.fileUrl}
+              src={driveMediaUrl(item.fileId)}
               controls
               autoPlay
               className="max-h-[80vh] rounded-lg"
@@ -364,7 +366,7 @@ export function PhotosTab({
             >
               {isImage && (
                 <img
-                  src={item.fileUrl}
+                  src={driveMediaUrl(item.fileId)}
                   alt={item.fileName}
                   className="h-full w-full object-cover rounded-lg"
                 />
@@ -372,7 +374,7 @@ export function PhotosTab({
               {isVideo && (
                 <>
                   <video
-                    src={item.fileUrl}
+                    src={driveMediaUrl(item.fileId)}
                     className="h-full w-full object-cover rounded-lg"
                   />
                   {/* Play icon overlay */}

@@ -101,7 +101,7 @@ export default async function PatientDetailPage(props: {
 
   const profilePhoto = await db.patientMedia.findFirst({
     where: { patientId: admission.patientId, isProfilePhoto: true },
-    select: { fileUrl: true },
+    select: { fileId: true },
   });
 
   const patientMedia = await db.patientMedia.findMany({
@@ -135,7 +135,7 @@ export default async function PatientDetailPage(props: {
 
   return (
     <div className={isDoctor ? "pb-32" : ""}>
-      <PatientHeader admission={admission} isDoctor={isDoctor} profilePhotoUrl={profilePhoto?.fileUrl ?? null} />
+      <PatientHeader admission={admission} isDoctor={isDoctor} profilePhotoFileId={profilePhoto?.fileId ?? null} />
       <TabNav ward={admission.ward} activeTab={tab} />
 
       {/* Tab content */}

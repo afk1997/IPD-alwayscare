@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { driveMediaUrl } from "@/lib/drive-url";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,7 @@ interface PatientHeaderProps {
     };
   };
   isDoctor?: boolean;
-  profilePhotoUrl?: string | null;
+  profilePhotoFileId?: string | null;
 }
 
 // ─── Edit Patient Sheet ──────────────────────────────────────────────────────
@@ -225,7 +226,7 @@ function EditAdmissionSheet({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function PatientHeader({ admission, isDoctor, profilePhotoUrl }: PatientHeaderProps) {
+export function PatientHeader({ admission, isDoctor, profilePhotoFileId }: PatientHeaderProps) {
   const { patient } = admission;
   const conditionCfg = admission.condition ? CONDITION_CONFIG[admission.condition] : null;
   const wardCfg = admission.ward ? WARD_CONFIG[admission.ward] : null;
@@ -272,9 +273,9 @@ export function PatientHeader({ admission, isDoctor, profilePhotoUrl }: PatientH
       {/* Main row */}
       <div className="flex items-start gap-3">
         {/* Photo / placeholder */}
-        {profilePhotoUrl ? (
+        {profilePhotoFileId ? (
           <img
-            src={profilePhotoUrl}
+            src={driveMediaUrl(profilePhotoFileId)}
             alt={patient.name}
             className="w-12 h-12 rounded-lg object-cover shrink-0"
           />
