@@ -9,14 +9,12 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  turbopack: {},
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",
     },
     proxyClientMaxBodySize: "50mb",
   },
-
 };
 
 export default withSerwist(nextConfig);

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans bg-clinic-bg antialiased`}>
         {children}
+        <InstallAppButton />
         <Toaster position="top-center" />
       </body>
     </html>
