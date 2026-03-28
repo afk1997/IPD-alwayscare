@@ -17,6 +17,7 @@ const BASE_TABS: Tab[] = [
   { key: "logs", label: "Logs" },
   { key: "labs", label: "Labs" },
   { key: "bath", label: "Bath" },
+  { key: "photos", label: "Photos" },
 ];
 
 const ISOLATION_TAB: Tab = { key: "isolation", label: "Isolation" };

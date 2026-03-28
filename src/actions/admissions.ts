@@ -27,7 +27,6 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
     const weight = weightStr ? parseFloat(weightStr) : undefined;
     const sex = (formData.get("sex") as string) || "UNKNOWN";
     const color = (formData.get("color") as string) || undefined;
-    const photoUrl = (formData.get("photoUrl") as string) || undefined;
     const isStray = formData.get("isStray") === "true";
     const rescueLocation = (formData.get("rescueLocation") as string) || undefined;
     const rescuerInfo = (formData.get("rescuerInfo") as string) || undefined;
@@ -44,7 +43,6 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
           weight,
           sex: validateSex(sex),
           color,
-          photoUrl,
           isStray,
           rescueLocation,
           rescuerInfo,
@@ -63,7 +61,7 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
     });
 
     revalidatePath("/");
-    return { success: true, admissionId: result.admissionId };
+    return { success: true, admissionId: result.admissionId, patientId: result.patientId };
   } catch (error) {
     return handleActionError(error);
   }
@@ -103,6 +101,14 @@ export async function cancelRegistration(admissionId: string) {
 
       // Only delete patient if no other admissions reference it
       if (otherAdmissions === 0) {
+        // Delete patient media
+        const mediaItems = await tx.patientMedia.findMany({
+          where: { patientId: current.patientId },
+          select: { fileId: true, fileName: true },
+        });
+        await markDeletedInDrive(mediaItems);
+        await tx.patientMedia.deleteMany({ where: { patientId: current.patientId } });
+
         await tx.patient.delete({ where: { id: current.patientId } });
       }
     });
@@ -726,6 +732,14 @@ export async function permanentlyDeletePatient(patientId: string) {
 
       // 14. Admission
       await tx.admission.deleteMany({ where: { patientId } });
+
+      // Delete patient media
+      const mediaItems = await tx.patientMedia.findMany({
+        where: { patientId },
+        select: { fileId: true, fileName: true },
+      });
+      await markDeletedInDrive(mediaItems);
+      await tx.patientMedia.deleteMany({ where: { patientId } });
 
       // 15. Patient
       await tx.patient.delete({ where: { id: patientId } });

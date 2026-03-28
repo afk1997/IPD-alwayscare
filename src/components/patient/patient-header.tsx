@@ -53,6 +53,7 @@ interface PatientHeaderProps {
     };
   };
   isDoctor?: boolean;
+  profilePhotoUrl?: string | null;
 }
 
 // ─── Edit Patient Sheet ──────────────────────────────────────────────────────
@@ -224,7 +225,7 @@ function EditAdmissionSheet({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function PatientHeader({ admission, isDoctor }: PatientHeaderProps) {
+export function PatientHeader({ admission, isDoctor, profilePhotoUrl }: PatientHeaderProps) {
   const { patient } = admission;
   const conditionCfg = admission.condition ? CONDITION_CONFIG[admission.condition] : null;
   const wardCfg = admission.ward ? WARD_CONFIG[admission.ward] : null;
@@ -270,10 +271,18 @@ export function PatientHeader({ admission, isDoctor }: PatientHeaderProps) {
 
       {/* Main row */}
       <div className="flex items-start gap-3">
-        {/* Photo placeholder */}
-        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-xl shrink-0">
-          {"\uD83D\uDC3E"}
-        </div>
+        {/* Photo / placeholder */}
+        {profilePhotoUrl ? (
+          <img
+            src={profilePhotoUrl}
+            alt={patient.name}
+            className="w-12 h-12 rounded-lg object-cover shrink-0"
+          />
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-xl shrink-0">
+            🐾
+          </div>
+        )}
 
         {/* Info */}
         <div className="flex-1 min-w-0">

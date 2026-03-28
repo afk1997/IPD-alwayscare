@@ -15,6 +15,7 @@ import { LabsTab } from "@/components/patient/labs-tab";
 import { BathTab } from "@/components/patient/bath-tab";
 import { IsolationTab } from "@/components/patient/isolation-tab";
 import { LogsTab } from "@/components/patient/logs-tab";
+import { PhotosTab } from "@/components/patient/photos-tab";
 
 export default async function PatientDetailPage(props: {
   params: Promise<{ admissionId: string }>;
@@ -98,6 +99,17 @@ export default async function PatientDetailPage(props: {
 
   if (!admission || admission.patient.deletedAt) notFound();
 
+  const profilePhoto = await db.patientMedia.findFirst({
+    where: { patientId: admission.patientId, isProfilePhoto: true },
+    select: { fileUrl: true },
+  });
+
+  const patientMedia = await db.patientMedia.findMany({
+    where: { patientId: admission.patientId },
+    orderBy: { createdAt: "desc" },
+    include: { uploadedBy: { select: { name: true } } },
+  });
+
   // Fetch available cages for doctor transfer action
   let availableCages: Array<{ ward: string; cageNumber: string }> = [];
   if (isDoctor) {
@@ -123,7 +135,7 @@ export default async function PatientDetailPage(props: {
 
   return (
     <div className={isDoctor ? "pb-32" : ""}>
-      <PatientHeader admission={admission} isDoctor={isDoctor} />
+      <PatientHeader admission={admission} isDoctor={isDoctor} profilePhotoUrl={profilePhoto?.fileUrl ?? null} />
       <TabNav ward={admission.ward} activeTab={tab} />
 
       {/* Tab content */}
@@ -164,6 +176,14 @@ export default async function PatientDetailPage(props: {
         )}
         {tab === "isolation" && admission.isolationProtocol && (
           <IsolationTab admissionId={admissionId} isolationProtocol={admission.isolationProtocol} labResults={admission.labResults} isDoctor={session.role === "DOCTOR"} patientName={admission.patient.name} />
+        )}
+        {tab === "photos" && (
+          <PhotosTab
+            patientId={admission.patientId}
+            patientName={admission.patient.name}
+            media={patientMedia}
+            isDoctor={isDoctor}
+          />
         )}
       </div>
 

@@ -18,6 +18,7 @@ export function buildDriveFolderPath(patientName: string, category: string): str
     VITALS: "Vitals",
     BATH: "Bath",
     DISINFECTION: "Disinfection",
+    PROFILE: "Profile",
   };
   return ["Patients", year, monthName, patientName, dayLabel, catLabels[category] || category];
 }
