@@ -69,6 +69,79 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
   }
 }
 
+export async function cancelRegistration(admissionId: string) {
+  try {
+    await requireAuth();
+
+    const admission = await db.admission.findUnique({
+      where: { id: admissionId },
+      select: { id: true, status: true, patientId: true },
+    });
+    if (!admission) return { error: "Admission not found" };
+    if (admission.status !== "REGISTERED") {
+      return { error: "Only registered (pending setup) patients can be cancelled" };
+    }
+
+    await db.$transaction(async (tx: any) => {
+      await tx.admission.delete({ where: { id: admissionId } });
+      await tx.patient.delete({ where: { id: admission.patientId } });
+    });
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
+export async function editRegisteredPatient(admissionId: string, formData: FormData) {
+  try {
+    await requireAuth();
+
+    const admission = await db.admission.findUnique({
+      where: { id: admissionId },
+      select: { id: true, status: true, patientId: true },
+    });
+    if (!admission) return { error: "Admission not found" };
+    if (admission.status !== "REGISTERED") {
+      return { error: "Only registered (pending setup) patients can be edited here" };
+    }
+
+    const name = (formData.get("name") as string)?.trim();
+    const breed = (formData.get("breed") as string) || undefined;
+    const age = (formData.get("age") as string) || undefined;
+    const weightStr = formData.get("weight") as string;
+    const weight = weightStr ? parseFloat(weightStr) : undefined;
+    const sex = formData.get("sex") as string;
+    const color = (formData.get("color") as string) || undefined;
+    const isStray = formData.get("isStray") === "true";
+    const rescueLocation = (formData.get("rescueLocation") as string) || undefined;
+    const rescuerInfo = (formData.get("rescuerInfo") as string) || undefined;
+
+    if (!name) return { error: "Patient name is required" };
+
+    await db.patient.update({
+      where: { id: admission.patientId },
+      data: {
+        name,
+        breed,
+        age,
+        weight,
+        sex: sex ? validateSex(sex) : undefined,
+        color,
+        isStray,
+        rescueLocation: isStray ? rescueLocation : null,
+        rescuerInfo: isStray ? rescuerInfo : null,
+      },
+    });
+
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    return handleActionError(error);
+  }
+}
+
 export async function clinicalSetup(admissionId: string, formData: FormData) {
   try {
     const session = await requireDoctor();

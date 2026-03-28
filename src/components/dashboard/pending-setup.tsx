@@ -1,15 +1,50 @@
+"use client";
+
+import * as React from "react";
 import Link from "next/link";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Pencil, Trash2 } from "lucide-react";
 import { formatRelative } from "@/lib/date-utils";
+import { cancelRegistration, editRegisteredPatient } from "@/actions/admissions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface RegisteredAdmission {
   id: string;
   admissionDate: Date;
   patient: {
+    id: string;
     name: string;
+    species: string;
     breed: string | null;
     age: string | null;
     weight: number | null;
+    sex: string;
+    color: string | null;
+    isStray: boolean;
+    rescueLocation: string | null;
+    rescuerInfo: string | null;
   };
   admittedBy: { name: string };
 }
@@ -19,7 +54,284 @@ interface PendingSetupProps {
   isDoctor: boolean;
 }
 
+/* ------------------------------------------------------------------ */
+/*  Edit Sheet                                                         */
+/* ------------------------------------------------------------------ */
+
+function EditRegisteredSheet({
+  admission,
+  open,
+  onOpenChange,
+}: {
+  admission: RegisteredAdmission;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const [species, setSpecies] = React.useState(admission.patient.species);
+  const [sex, setSex] = React.useState(admission.patient.sex);
+  const [isStray, setIsStray] = React.useState(admission.patient.isStray);
+
+  // Reset form state when sheet opens with fresh admission data
+  React.useEffect(() => {
+    if (open) {
+      setSpecies(admission.patient.species);
+      setSex(admission.patient.sex);
+      setIsStray(admission.patient.isStray);
+      setError(null);
+    }
+  }, [open, admission]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    formData.set("species", species);
+    formData.set("sex", sex);
+    formData.set("isStray", String(isStray));
+
+    const result = await editRegisteredPatient(admission.id, formData);
+    setLoading(false);
+
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+      return;
+    }
+    onOpenChange(false);
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>Edit Patient</SheetTitle>
+        </SheetHeader>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 px-4 pb-4">
+          {error && (
+            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
+          {/* Name */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-name">
+              Name <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="edit-name"
+              name="name"
+              required
+              defaultValue={admission.patient.name}
+            />
+          </div>
+
+          {/* Species + Sex */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Species</Label>
+              <Select value={species} onValueChange={(v) => setSpecies(v ?? "DOG")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DOG">Dog</SelectItem>
+                  <SelectItem value="CAT">Cat</SelectItem>
+                  <SelectItem value="BIRD">Bird</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Sex</Label>
+              <Select value={sex} onValueChange={(v) => setSex(v ?? "UNKNOWN")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MALE">Male</SelectItem>
+                  <SelectItem value="FEMALE">Female</SelectItem>
+                  <SelectItem value="UNKNOWN">Unknown</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Breed */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-breed">Breed</Label>
+            <Input
+              id="edit-breed"
+              name="breed"
+              defaultValue={admission.patient.breed ?? ""}
+            />
+          </div>
+
+          {/* Age + Weight */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-age">Age</Label>
+              <Input
+                id="edit-age"
+                name="age"
+                defaultValue={admission.patient.age ?? ""}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-weight">Weight (kg)</Label>
+              <Input
+                id="edit-weight"
+                name="weight"
+                type="number"
+                step="0.1"
+                min="0"
+                defaultValue={admission.patient.weight ?? ""}
+              />
+            </div>
+          </div>
+
+          {/* Color */}
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-color">Color / Markings</Label>
+            <Input
+              id="edit-color"
+              name="color"
+              defaultValue={admission.patient.color ?? ""}
+            />
+          </div>
+
+          {/* Is Stray */}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Stray animal?</p>
+            </div>
+            <Switch checked={isStray} onCheckedChange={setIsStray} />
+          </div>
+
+          {/* Stray-specific fields */}
+          {isStray && (
+            <div className="space-y-3 rounded-lg bg-muted/50 p-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-rescueLocation">Rescue Location</Label>
+                <Input
+                  id="edit-rescueLocation"
+                  name="rescueLocation"
+                  defaultValue={admission.patient.rescueLocation ?? ""}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-rescuerInfo">Rescuer Info</Label>
+                <Input
+                  id="edit-rescuerInfo"
+                  name="rescuerInfo"
+                  defaultValue={admission.patient.rescuerInfo ?? ""}
+                />
+              </div>
+            </div>
+          )}
+
+          <Button type="submit" disabled={loading} className="mt-2">
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Cancel Dialog                                                      */
+/* ------------------------------------------------------------------ */
+
+function CancelRegistrationDialog({
+  admission,
+  open,
+  onOpenChange,
+}: {
+  admission: RegisteredAdmission;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (open) setError(null);
+  }, [open]);
+
+  async function handleDelete() {
+    setLoading(true);
+    setError(null);
+
+    const result = await cancelRegistration(admission.id);
+    setLoading(false);
+
+    if (result && "error" in result && result.error) {
+      setError(result.error);
+      return;
+    }
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Cancel Registration</DialogTitle>
+        </DialogHeader>
+
+        <p className="text-sm text-muted-foreground">
+          This will permanently remove{" "}
+          <span className="font-semibold text-foreground">
+            {admission.patient.name}
+          </span>{" "}
+          from the system.
+        </p>
+
+        {error && (
+          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+            {error}
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            className="bg-red-600 hover:bg-red-700 text-white"
+            onClick={handleDelete}
+            disabled={loading}
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main Component                                                     */
+/* ------------------------------------------------------------------ */
+
 export function PendingSetup({ admissions, isDoctor }: PendingSetupProps) {
+  const [editAdmission, setEditAdmission] =
+    React.useState<RegisteredAdmission | null>(null);
+  const [cancelAdmission, setCancelAdmission] =
+    React.useState<RegisteredAdmission | null>(null);
+
   if (admissions.length === 0) return null;
 
   return (
@@ -61,17 +373,58 @@ export function PendingSetup({ admissions, isDoctor }: PendingSetupProps) {
               </p>
             </div>
 
-            {isDoctor && (
-              <Link
-                href={`/patients/${admission.id}/setup`}
-                className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-600 active:bg-amber-700"
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setEditAdmission(admission)}
+                aria-label={`Edit ${admission.patient.name}`}
               >
-                Complete Setup
-              </Link>
-            )}
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setCancelAdmission(admission)}
+                aria-label={`Cancel registration for ${admission.patient.name}`}
+              >
+                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+              </Button>
+
+              {isDoctor && (
+                <Link
+                  href={`/patients/${admission.id}/setup`}
+                  className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-600 active:bg-amber-700"
+                >
+                  Complete Setup
+                </Link>
+              )}
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Edit Sheet */}
+      {editAdmission && (
+        <EditRegisteredSheet
+          admission={editAdmission}
+          open={!!editAdmission}
+          onOpenChange={(open) => {
+            if (!open) setEditAdmission(null);
+          }}
+        />
+      )}
+
+      {/* Cancel Dialog */}
+      {cancelAdmission && (
+        <CancelRegistrationDialog
+          admission={cancelAdmission}
+          open={!!cancelAdmission}
+          onOpenChange={(open) => {
+            if (!open) setCancelAdmission(null);
+          }}
+        />
+      )}
     </div>
   );
 }
