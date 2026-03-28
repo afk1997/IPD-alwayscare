@@ -378,7 +378,6 @@ function ProofViewSheet({
                 type="file"
                 accept="image/*,video/*"
                 multiple
-                capture="environment"
                 className="hidden"
                 onChange={handleFileChange}
                 disabled={uploading}
@@ -704,7 +703,6 @@ function ProofCreateSheet({
               type="file"
               accept="image/*,video/*"
               multiple
-              capture="environment"
               className="hidden"
               onChange={handleFileChange}
               disabled={uploading}

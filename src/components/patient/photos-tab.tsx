@@ -287,7 +287,6 @@ export function PhotosTab({
           type="file"
           accept="image/*,video/*"
           multiple
-          capture="environment"
           className="hidden"
           onChange={handleFileChange}
         />
@@ -314,7 +313,6 @@ export function PhotosTab({
         type="file"
         accept="image/*,video/*"
         multiple
-        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />

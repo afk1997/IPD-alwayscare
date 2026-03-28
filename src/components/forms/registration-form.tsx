@@ -226,7 +226,6 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
               type="file"
               accept="image/*,video/*"
               multiple
-              capture="environment"
               className="hidden"
               onChange={handleFilesSelected}
             />
