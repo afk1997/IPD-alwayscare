@@ -31,7 +31,7 @@ export default async function ClinicalSetupPage({
       select: { id: true, name: true },
     }),
     db.admission.findMany({
-      where: { status: "ACTIVE", deletedAt: null },
+      where: { status: "ACTIVE", deletedAt: null, patient: { deletedAt: null } },
       select: { ward: true, cageNumber: true },
     }),
   ]);

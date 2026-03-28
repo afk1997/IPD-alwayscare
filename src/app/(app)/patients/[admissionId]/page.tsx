@@ -119,7 +119,12 @@ export default async function PatientDetailPage(props: {
         orderBy: { cageNumber: "asc" },
       }),
       db.admission.findMany({
-        where: { status: "ACTIVE", deletedAt: null, id: { not: admissionId } },
+        where: {
+          status: "ACTIVE",
+          deletedAt: null,
+          patient: { deletedAt: null },
+          id: { not: admissionId },
+        },
         select: { ward: true, cageNumber: true },
       }),
     ]);

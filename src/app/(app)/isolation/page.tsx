@@ -44,6 +44,7 @@ export default async function IsolationWardPage() {
       status: "ACTIVE",
       ward: "ISOLATION",
       deletedAt: null,
+      patient: { deletedAt: null },
     },
     include: {
       patient: true,

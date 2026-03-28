@@ -112,6 +112,7 @@ export default async function SchedulePage() {
     where: {
       status: "ACTIVE",
       deletedAt: null,
+      patient: { deletedAt: null },
     },
     include: {
       patient: { select: { name: true } },

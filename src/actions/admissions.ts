@@ -263,6 +263,8 @@ export async function clinicalSetup(admissionId: string, formData: FormData) {
           ward: validatedWard,
           cageNumber,
           status: "ACTIVE",
+          deletedAt: null,
+          patient: { deletedAt: null },
           id: { not: admissionId },
         },
         include: { patient: { select: { name: true } } },
@@ -448,6 +450,8 @@ export async function transferWard(admissionId: string, newWard: string, newCage
           ward: validatedWard,
           cageNumber: newCage,
           status: "ACTIVE",
+          deletedAt: null,
+          patient: { deletedAt: null },
           id: { not: admissionId },
         },
         include: { patient: { select: { name: true } } },
@@ -565,20 +569,36 @@ export async function archivePatient(admissionId: string) {
 
     // Soft-delete admission and patient + deactivate plans atomically
     await db.$transaction(async (tx: any) => {
-      await tx.admission.update({
-        where: { id: admissionId },
-        data: { deletedAt: new Date() },
+      const now = new Date();
+      const admissionsToArchive = await tx.admission.findMany({
+        where: { patientId: admission.patientId, deletedAt: null },
+        select: { id: true },
+      });
+      const admissionIds = admissionsToArchive.map((a: any) => a.id);
+
+      await tx.admission.updateMany({
+        where: { patientId: admission.patientId, deletedAt: null },
+        data: { deletedAt: now },
       });
       await tx.patient.update({
         where: { id: admission.patientId },
-        data: { deletedAt: new Date() },
+        data: { deletedAt: now },
       });
-      await tx.treatmentPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
-      await tx.dietPlan.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
-      await tx.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
+      await tx.treatmentPlan.updateMany({
+        where: { admissionId: { in: admissionIds }, isActive: true },
+        data: { isActive: false },
+      });
+      await tx.dietPlan.updateMany({
+        where: { admissionId: { in: admissionIds }, isActive: true },
+        data: { isActive: false },
+      });
+      await tx.fluidTherapy.updateMany({
+        where: { admissionId: { in: admissionIds }, isActive: true },
+        data: { isActive: false },
+      });
       await tx.isolationProtocol.updateMany({
-        where: { admissionId },
-        data: { isCleared: true, clearedDate: new Date() },
+        where: { admissionId: { in: admissionIds } },
+        data: { isCleared: true, clearedDate: now },
       });
     });
 

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
   // Fetch all active admissions with relevant data
   const admissions = await db.admission.findMany({
-    where: { status: "ACTIVE", deletedAt: null },
+    where: { status: "ACTIVE", deletedAt: null, patient: { deletedAt: null } },
     include: {
       patient: true,
       vitalRecords: { orderBy: { recordedAt: "desc" }, take: 1 },
