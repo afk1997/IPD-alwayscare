@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { getSession } from "@/lib/auth";
 import { logout } from "@/actions/auth";
 import { Badge } from "@/components/ui/badge";

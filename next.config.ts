@@ -8,6 +8,19 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
+  cacheLife: {
+    clinicalLive: {
+      stale: 30,
+      revalidate: 30,
+      expire: 300,
+    },
+    clinicalWarm: {
+      stale: 60,
+      revalidate: 60,
+      expire: 600,
+    },
+  },
   reactCompiler: true,
   experimental: {
     serverActions: {

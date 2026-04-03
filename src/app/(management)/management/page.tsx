@@ -1,12 +1,9 @@
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
 import { formatInTimeZone } from "date-fns-tz";
 import { db } from "@/lib/db";
 import { getTodayUTCDate } from "@/lib/date-utils";
 import { hasAnyAbnormalVital } from "@/lib/vitals-thresholds";
 import { cn } from "@/lib/utils";
-import { AutoRefresh } from "@/components/management/auto-refresh";
 
 interface ManagementPageProps {
   searchParams: Promise<{
@@ -218,8 +215,6 @@ export default async function ManagementDashboardPage({
 
   return (
     <div className="space-y-4">
-      <AutoRefresh intervalMs={60_000} />
-
       <section className="rounded-xl border border-border bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -228,12 +223,31 @@ export default async function ManagementDashboardPage({
               Last refreshed at {formatInTimeZone(new Date(), "Asia/Kolkata", "dd MMM yyyy, HH:mm")}
             </p>
           </div>
-          <Link
-            href="/management"
-            className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
-          >
-            Reset Filters
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/management${
+                ward || condition
+                  ? `?${new URLSearchParams(
+                      Object.fromEntries(
+                        Object.entries({ ward, condition }).filter(
+                          (entry): entry is [string, string] =>
+                            typeof entry[1] === "string" && entry[1].length > 0
+                        )
+                      )
+                    ).toString()}`
+                  : ""
+              }`}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-clinic-teal hover:bg-muted"
+            >
+              Refresh
+            </Link>
+            <Link
+              href="/management"
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted"
+            >
+              Reset Filters
+            </Link>
+          </div>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">

@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
