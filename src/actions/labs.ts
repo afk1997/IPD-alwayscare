@@ -5,6 +5,10 @@ import { requireDoctor } from "@/lib/auth";
 import { validateLabTestType } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
 import { markDeletedInDrive } from "@/lib/google-auth";
+import {
+  getLabMutationTags,
+  updateClinicalTags,
+} from "@/lib/clinical-revalidation";
 
 export async function addLabResult(admissionId: string, formData: FormData) {
   try {
@@ -29,6 +33,7 @@ export async function addLabResult(admissionId: string, formData: FormData) {
     await db.labResult.create({
       data: { admissionId, testType: validateLabTestType(testType), testName, result, isAbnormal, notes, reportUrl, createdById: session.staffId },
     });
+    updateClinicalTags(getLabMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
@@ -66,6 +71,7 @@ export async function updateLabResult(labId: string, formData: FormData) {
       data: { testType: validateLabTestType(testType), testName, result, isAbnormal, notes, reportUrl },
     });
 
+    updateClinicalTags(getLabMutationTags(lab.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
@@ -100,6 +106,7 @@ export async function deleteLabResult(labId: string) {
     });
 
     await db.labResult.delete({ where: { id: labId } });
+    updateClinicalTags(getLabMutationTags(lab.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {

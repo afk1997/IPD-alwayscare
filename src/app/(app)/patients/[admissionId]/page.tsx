@@ -51,42 +51,45 @@ export default async function PatientDetailPage(props: {
 
   if (!admission || admission.patient.deletedAt) notFound();
 
-  const [profilePhoto, availableCages] = await Promise.all([
+  const [
+    profilePhoto,
+    availableCages,
+    vitals,
+    medsData,
+    foodData,
+    notes,
+    labResults,
+    bathLogs,
+    isolationData,
+    logEntries,
+    patientMedia,
+  ] = await Promise.all([
     loadPlan.profilePhoto
       ? getPatientProfilePhoto(admission.patientId)
       : Promise.resolve(null),
     loadPlan.availableCages
       ? getAvailableCages(admissionId)
       : Promise.resolve([]),
+    loadPlan.vitals ? getPatientVitalsData(admissionId) : Promise.resolve([]),
+    loadPlan.meds
+      ? getPatientMedsData(admissionId, today)
+      : Promise.resolve({ treatmentPlans: [], fluidTherapies: [] }),
+    loadPlan.food
+      ? getPatientFoodData(admissionId, today, sevenDaysAgo)
+      : Promise.resolve({ activePlan: null, historyEntries: [] }),
+    loadPlan.notes ? getPatientNotesData(admissionId) : Promise.resolve([]),
+    loadPlan.labs ? getPatientLabsData(admissionId) : Promise.resolve([]),
+    loadPlan.bath ? getPatientBathData(admissionId) : Promise.resolve([]),
+    loadPlan.isolation
+      ? getPatientIsolationData(admissionId)
+      : Promise.resolve({ isolationProtocol: null, labResults: [] }),
+    loadPlan.logs
+      ? getPatientLogsData(admissionId, today, sevenDaysAgo)
+      : Promise.resolve([]),
+    loadPlan.photos
+      ? getPatientPhotosData(admission.patientId)
+      : Promise.resolve([]),
   ]);
-
-  const vitals = loadPlan.vitals
-    ? await getPatientVitalsData(admissionId)
-    : [];
-  const medsData = loadPlan.meds
-    ? await getPatientMedsData(admissionId, today)
-    : { treatmentPlans: [], fluidTherapies: [] };
-  const dietPlans = loadPlan.food
-    ? await getPatientFoodData(admissionId, sevenDaysAgo)
-    : [];
-  const notes = loadPlan.notes
-    ? await getPatientNotesData(admissionId)
-    : [];
-  const labResults = loadPlan.labs
-    ? await getPatientLabsData(admissionId)
-    : [];
-  const bathLogs = loadPlan.bath
-    ? await getPatientBathData(admissionId)
-    : [];
-  const isolationData = loadPlan.isolation
-    ? await getPatientIsolationData(admissionId)
-    : { isolationProtocol: null, labResults: [] };
-  const logEntries = loadPlan.logs
-    ? await getPatientLogsData(admissionId, today, sevenDaysAgo)
-    : [];
-  const patientMedia = loadPlan.photos
-    ? await getPatientPhotosData(admission.patientId)
-    : [];
 
   const isActive = admission.status === "ACTIVE";
   const canEdit = isDoctor && isActive;
@@ -120,7 +123,7 @@ export default async function PatientDetailPage(props: {
         {tab === "food" && (
           <FoodTab
             admissionId={admissionId}
-            dietPlans={dietPlans}
+            data={foodData}
             isDoctor={canEdit}
             patientName={admission.patient.name}
           />

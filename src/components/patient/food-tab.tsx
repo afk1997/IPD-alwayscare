@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Plus, ChevronDown, Trash2, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { getTodayIST } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,41 +16,19 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { createDietPlan, deleteFeeding } from "@/actions/feeding";
+import type {
+  FoodHistoryEntry,
+  FoodSchedule,
+  FoodTabData,
+} from "@/lib/food-tab-data";
 import { FeedingLogSheet } from "./feeding-log-sheet";
 import { ActionsMenu } from "@/components/ui/actions-menu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface FeedingLog {
-  id: string;
-  date: Date;
-  status: string;
-  amountConsumed: string | null;
-  notes: string | null;
-}
-
-interface FeedingSchedule {
-  id: string;
-  scheduledTime: string;
-  foodType: string;
-  portion: string;
-  isActive: boolean;
-  feedingLogs: FeedingLog[];
-}
-
-interface DietPlan {
-  id: string;
-  dietType: string;
-  instructions: string | null;
-  isActive: boolean;
-  createdAt: Date;
-  createdBy: { name: string };
-  feedingSchedules: FeedingSchedule[];
-}
-
 interface FoodTabProps {
   admissionId: string;
-  dietPlans: DietPlan[];
+  data: FoodTabData;
   isDoctor: boolean;
   patientName?: string;
 }
@@ -93,18 +70,6 @@ const STATUS_CONFIG: Record<
     text: "text-gray-500",
   },
 };
-
-function getTodayLog(schedule: FeedingSchedule, today: string): FeedingLog | null {
-  return (
-    schedule.feedingLogs.find((log) => {
-      const logDate =
-        log.date instanceof Date
-          ? log.date.toISOString().slice(0, 10)
-          : String(log.date).slice(0, 10);
-      return logDate === today;
-    }) ?? null
-  );
-}
 
 // ─── Diet Plan Form ────────────────────────────────────────────────────────────
 
@@ -378,16 +343,12 @@ function DietPlanSheet({
 
 function FeedingRow({
   schedule,
-  today,
   patientName,
 }: {
-  schedule: FeedingSchedule;
-  today: string;
+  schedule: FoodSchedule;
   patientName?: string;
 }) {
-  const todayLog = getTodayLog(schedule, today);
-  const status = todayLog?.status ?? "PENDING";
-  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.PENDING;
+  const status = schedule.todayLog?.status ?? "PENDING";
 
   const [logOpen, setLogOpen] = useState(false);
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
@@ -444,7 +405,7 @@ function FeedingRow({
         open={logOpen}
         onOpenChange={setLogOpen}
         feedingScheduleId={schedule.id}
-        feedingLogId={todayLog?.id}
+        feedingLogId={schedule.todayLog?.id}
         scheduledTime={schedule.scheduledTime}
         foodType={schedule.foodType}
         portion={schedule.portion}
@@ -458,50 +419,14 @@ function FeedingRow({
 
 // ─── Feeding History ──────────────────────────────────────────────────────────
 
-function FeedingHistory({ dietPlans, isDoctor }: { dietPlans: DietPlan[]; isDoctor: boolean }) {
+function FeedingHistory({
+  historyEntries,
+  isDoctor,
+}: {
+  historyEntries: FoodHistoryEntry[];
+  isDoctor: boolean;
+}) {
   const [open, setOpen] = useState(false);
-
-  const today = getTodayIST();
-
-  // Collect all logs from all diet plans, excluding today
-  const pastLogs: Array<{
-    id: string;
-    date: string;
-    foodType: string;
-    scheduledTime: string;
-    status: string;
-    amountConsumed: string | null;
-    notes: string | null;
-  }> = [];
-
-  for (const plan of dietPlans) {
-    for (const schedule of plan.feedingSchedules) {
-      for (const log of schedule.feedingLogs) {
-        const logDate =
-          log.date instanceof Date
-            ? log.date.toISOString().slice(0, 10)
-            : String(log.date).slice(0, 10);
-
-        // Only last 7 days, excluding today
-        if (logDate < today) {
-          const cutoff = new Date(today);
-          cutoff.setDate(cutoff.getDate() - 7);
-          const cutoffStr = cutoff.toISOString().slice(0, 10);
-          if (logDate >= cutoffStr) {
-            pastLogs.push({
-              id: log.id,
-              date: logDate,
-              foodType: schedule.foodType,
-              scheduledTime: schedule.scheduledTime,
-              status: log.status,
-              amountConsumed: log.amountConsumed,
-              notes: log.notes,
-            });
-          }
-        }
-      }
-    }
-  }
 
   async function handleDeleteFeeding(logId: string) {
     try {
@@ -513,9 +438,7 @@ function FeedingHistory({ dietPlans, isDoctor }: { dietPlans: DietPlan[]; isDoct
     }
   }
 
-  pastLogs.sort((a, b) => b.date.localeCompare(a.date) || a.scheduledTime.localeCompare(b.scheduledTime));
-
-  if (pastLogs.length === 0) return null;
+  if (historyEntries.length === 0) return null;
 
   return (
     <div className="mt-4 border-t border-gray-100 pt-3">
@@ -537,7 +460,7 @@ function FeedingHistory({ dietPlans, isDoctor }: { dietPlans: DietPlan[]; isDoct
 
       {open && (
         <div className="mt-3 space-y-1">
-          {pastLogs.map((log) => {
+          {historyEntries.map((log) => {
             const config = STATUS_CONFIG[log.status] ?? STATUS_CONFIG.PENDING;
             return (
               <div
@@ -574,11 +497,9 @@ function FeedingHistory({ dietPlans, isDoctor }: { dietPlans: DietPlan[]; isDoct
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function FoodTab({ admissionId, dietPlans, isDoctor, patientName }: FoodTabProps) {
-  const today = getTodayIST();
-  const activePlan = dietPlans.find((p) => p.isActive) ?? null;
-  const activeSchedules = activePlan?.feedingSchedules.filter((schedule) => schedule.isActive) ?? [];
-  const todaySchedules = activeSchedules;
+export function FoodTab({ admissionId, data, isDoctor, patientName }: FoodTabProps) {
+  const activePlan = data.activePlan;
+  const todaySchedules = activePlan?.feedingSchedules ?? [];
 
   return (
     <div className="space-y-1">
@@ -597,7 +518,7 @@ export function FoodTab({ admissionId, dietPlans, isDoctor, patientName }: FoodT
                 <p className="mt-1 text-sm text-gray-600">{activePlan.instructions}</p>
               )}
               <p className="mt-1 text-xs text-gray-400">
-                By {activePlan.createdBy.name}
+                By {activePlan.createdByName}
               </p>
             </div>
 
@@ -610,7 +531,7 @@ export function FoodTab({ admissionId, dietPlans, isDoctor, patientName }: FoodT
                 defaultValues={{
                   dietType: activePlan.dietType,
                   instructions: activePlan.instructions,
-                  feedingSchedules: activeSchedules.map((s) => ({
+                  feedingSchedules: todaySchedules.map((s) => ({
                     id: s.id,
                     scheduledTime: s.scheduledTime,
                     foodType: s.foodType,
@@ -655,7 +576,7 @@ export function FoodTab({ admissionId, dietPlans, isDoctor, patientName }: FoodT
             .slice()
             .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime))
             .map((schedule) => (
-              <FeedingRow key={schedule.id} schedule={schedule} today={today} patientName={patientName} />
+              <FeedingRow key={schedule.id} schedule={schedule} patientName={patientName} />
             ))}
         </div>
       )}
@@ -668,7 +589,7 @@ export function FoodTab({ admissionId, dietPlans, isDoctor, patientName }: FoodT
       )}
 
       {/* Feeding history (collapsible) */}
-      <FeedingHistory dietPlans={dietPlans} isDoctor={isDoctor} />
+      <FeedingHistory historyEntries={data.historyEntries} isDoctor={isDoctor} />
     </div>
   );
 }
