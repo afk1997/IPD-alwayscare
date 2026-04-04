@@ -7,6 +7,11 @@ import {
 
 type DashboardTagKey = "summary" | "queue" | "setup";
 
+export const admissionDashboardInvalidations = {
+  transferWard: ["summary", "queue", "setup"],
+  dischargePatient: ["summary", "queue", "setup"],
+} as const satisfies Record<string, readonly DashboardTagKey[]>;
+
 const dashboardTagFactories: Record<DashboardTagKey, () => string> = {
   summary: dashboardSummaryTag,
   queue: dashboardQueueTag,

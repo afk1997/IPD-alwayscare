@@ -16,7 +16,10 @@ import {
 } from "@/lib/validators";
 import { ActionUserError, handleActionError } from "@/lib/action-utils";
 import { markDeletedInDrive } from "@/lib/google-auth";
-import { invalidateDashboardTags } from "@/lib/dashboard-revalidation";
+import {
+  admissionDashboardInvalidations,
+  invalidateDashboardTags,
+} from "@/lib/dashboard-revalidation";
 
 export async function registerPatient(_prevState: unknown, formData: FormData) {
   try {
@@ -474,7 +477,7 @@ export async function transferWard(admissionId: string, newWard: string, newCage
       });
     });
 
-    invalidateDashboardTags("summary", "queue");
+    invalidateDashboardTags(...admissionDashboardInvalidations.transferWard);
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     return { success: true };
@@ -879,7 +882,7 @@ export async function dischargePatient(admissionId: string, formData: FormData) 
       await tx.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
     });
 
-    invalidateDashboardTags("summary", "queue");
+    invalidateDashboardTags(...admissionDashboardInvalidations.dischargePatient);
     revalidatePath("/");
   } catch (error) {
     return handleActionError(error);
