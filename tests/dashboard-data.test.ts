@@ -3,7 +3,12 @@ import assert from "node:assert/strict";
 import {
   buildDashboardStats,
   filterDashboardQueue,
+  getBathReferenceDate,
+  selectLatestVital,
+  selectNextMedication,
+  countUpcomingFeedings,
   sortDashboardQueue,
+  toDashboardQueueAdmission,
 } from "../src/lib/dashboard-data";
 
 const activeAdmissions = [
@@ -46,4 +51,92 @@ test("sortDashboardQueue puts critical patients first", () => {
 test("filterDashboardQueue narrows by ward", () => {
   const filtered = filterDashboardQueue(activeAdmissions, "ISOLATION");
   assert.deepEqual(filtered.map((item) => item.id), ["a2"]);
+});
+
+test("countUpcomingFeedings includes cross-midnight windows", () => {
+  const count = countUpcomingFeedings(
+    [
+      {
+        feedingSchedules: [
+          { scheduledTime: "22:45" },
+          { scheduledTime: "23:30" },
+          { scheduledTime: "00:15" },
+          { scheduledTime: "01:15" },
+        ],
+      },
+    ],
+    "23:00",
+    "01:00"
+  );
+
+  assert.equal(count, 2);
+});
+
+test("getBathReferenceDate falls back to admission date when there is no bath log", () => {
+  const admissionDate = new Date("2026-04-02T06:30:00.000Z");
+
+  assert.equal(getBathReferenceDate(admissionDate, []), admissionDate);
+});
+
+test("selectLatestVital returns null when there are no vitals", () => {
+  assert.equal(selectLatestVital([]), null);
+});
+
+test("selectNextMedication returns the next incomplete administration", () => {
+  const nextMedication = selectNextMedication([
+    {
+      drugName: "Amoxicillin",
+      administrations: [
+        { scheduledTime: "08:00", wasAdministered: true, wasSkipped: false },
+        { scheduledTime: "12:00", wasAdministered: false, wasSkipped: false },
+      ],
+    },
+    {
+      drugName: "Meloxicam",
+      administrations: [
+        { scheduledTime: "09:00", wasAdministered: false, wasSkipped: false },
+      ],
+    },
+  ]);
+
+  assert.deepEqual(nextMedication, {
+    drugName: "Meloxicam",
+    scheduledTime: "09:00",
+  });
+});
+
+test("toDashboardQueueAdmission preserves queue read-model fallbacks", () => {
+  const admission = toDashboardQueueAdmission({
+    id: "adm-1",
+    cageNumber: "C-14",
+    condition: "STABLE",
+    ward: "GENERAL",
+    diagnosis: "Skin infection",
+    attendingDoctor: "Rao",
+    admissionDate: new Date("2026-04-01T07:00:00.000Z"),
+    patient: {
+      name: "Poppy",
+      breed: null,
+      age: "4y",
+      weight: 11.2,
+    },
+    vitalRecords: [],
+    bathLogs: [],
+    treatmentPlans: [
+      {
+        drugName: "Meloxicam",
+        administrations: [
+          { scheduledTime: "09:00", wasAdministered: true, wasSkipped: false },
+          { scheduledTime: "18:00", wasAdministered: false, wasSkipped: false },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(admission.bathReferenceDate.toISOString(), "2026-04-01T07:00:00.000Z");
+  assert.equal(admission.latestVital, null);
+  assert.deepEqual(admission.nextMedication, {
+    drugName: "Meloxicam",
+    scheduledTime: "18:00",
+  });
 });

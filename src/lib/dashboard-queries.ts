@@ -6,88 +6,19 @@ import {
   dashboardSetupTag,
   dashboardSummaryTag,
 } from "@/lib/clinical-cache";
-import { buildDashboardStats, type DashboardSummaryRow } from "@/lib/dashboard-data";
-import { isBathDue } from "@/lib/date-utils";
+import {
+  buildDashboardStats,
+  toDashboardQueueAdmission,
+  toDashboardSummaryRow,
+  type DashboardQueueAdmissionRow,
+  type DashboardSummaryAdmissionRow,
+} from "@/lib/dashboard-data";
 import { db } from "@/lib/db";
 
 const IST_ZONE = "Asia/Kolkata";
 const FEEDING_WINDOW_HOURS = 2;
 
-type SummaryAdmissionRow = {
-  id: string;
-  ward: string | null;
-  condition: string | null;
-  admissionDate: Date;
-  bathLogs: Array<{ bathedAt: Date }>;
-  treatmentPlans: Array<{
-    scheduledTimes: string[];
-    administrations: Array<{
-      wasAdministered: boolean;
-      wasSkipped: boolean;
-    }>;
-  }>;
-  dietPlans: Array<{
-    feedingSchedules: Array<{
-      scheduledTime: string;
-    }>;
-  }>;
-};
-
-type QueueAdmissionRow = {
-  id: string;
-  cageNumber: string | null;
-  condition: string | null;
-  ward: string | null;
-  diagnosis: string | null;
-  attendingDoctor: string | null;
-  admissionDate: Date;
-  patient: {
-    name: string;
-    breed: string | null;
-    age: string | null;
-    weight: number | null;
-  };
-  vitalRecords: Array<{
-    temperature: number | null;
-    heartRate: number | null;
-    weight: number | null;
-  }>;
-  bathLogs: Array<{
-    bathedAt: Date;
-  }>;
-  treatmentPlans: Array<{
-    drugName: string;
-    administrations: Array<{
-      scheduledTime: string;
-    }>;
-  }>;
-};
-
-export interface DashboardQueueAdmission {
-  id: string;
-  cageNumber: string | null;
-  condition: string | null;
-  ward: string | null;
-  diagnosis: string | null;
-  attendingDoctor: string | null;
-  admissionDate: Date;
-  bathReferenceDate: Date;
-  patient: {
-    name: string;
-    breed: string | null;
-    age: string | null;
-    weight: number | null;
-  };
-  latestVital: {
-    temperature: number | null;
-    heartRate: number | null;
-    weight: number | null;
-  } | null;
-  nextMedication: {
-    drugName: string;
-    scheduledTime: string;
-  } | null;
-}
+export type { DashboardQueueAdmission } from "@/lib/dashboard-data";
 
 export interface DashboardSecondaryData {
   registeredAdmissions: Array<{
@@ -118,98 +49,6 @@ export interface DashboardSecondaryData {
       ppeRequired: string[];
     } | null;
   }>;
-}
-
-function countPendingMeds(
-  treatmentPlans: SummaryAdmissionRow["treatmentPlans"]
-): number {
-  return treatmentPlans.reduce((sum, plan) => {
-    const completedCount = plan.administrations.filter(
-      (administration) =>
-        administration.wasAdministered || administration.wasSkipped
-    ).length;
-
-    return sum + Math.max(0, plan.scheduledTimes.length - completedCount);
-  }, 0);
-}
-
-function countUpcomingFeedings(
-  dietPlans: SummaryAdmissionRow["dietPlans"],
-  nowTime: string,
-  laterTime: string
-): number {
-  return dietPlans.reduce((sum, plan) => {
-    const upcomingCount = plan.feedingSchedules.filter((schedule) => {
-      if (laterTime < nowTime) {
-        return (
-          schedule.scheduledTime >= nowTime ||
-          schedule.scheduledTime <= laterTime
-        );
-      }
-
-      return (
-        schedule.scheduledTime >= nowTime &&
-        schedule.scheduledTime <= laterTime
-      );
-    }).length;
-
-    return sum + upcomingCount;
-  }, 0);
-}
-
-function toDashboardSummaryRow(
-  admission: SummaryAdmissionRow,
-  nowTime: string,
-  laterTime: string
-): DashboardSummaryRow {
-  const lastBathAt = admission.bathLogs[0]?.bathedAt ?? admission.admissionDate;
-
-  return {
-    id: admission.id,
-    ward: admission.ward,
-    condition: admission.condition,
-    admissionDate: admission.admissionDate,
-    pendingMeds: countPendingMeds(admission.treatmentPlans),
-    upcomingFeedings: countUpcomingFeedings(
-      admission.dietPlans,
-      nowTime,
-      laterTime
-    ),
-    bathDue: isBathDue(lastBathAt).isDue,
-  };
-}
-
-function getNextMedication(
-  treatmentPlans: QueueAdmissionRow["treatmentPlans"]
-): DashboardQueueAdmission["nextMedication"] {
-  return (
-    treatmentPlans
-      .flatMap((plan) =>
-        plan.administrations.map((administration) => ({
-          drugName: plan.drugName,
-          scheduledTime: administration.scheduledTime,
-        }))
-      )
-      .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime))[0] ?? null
-  );
-}
-
-function toDashboardQueueAdmission(
-  admission: QueueAdmissionRow
-): DashboardQueueAdmission {
-  return {
-    id: admission.id,
-    cageNumber: admission.cageNumber,
-    condition: admission.condition,
-    ward: admission.ward,
-    diagnosis: admission.diagnosis,
-    attendingDoctor: admission.attendingDoctor,
-    admissionDate: admission.admissionDate,
-    bathReferenceDate: admission.bathLogs[0]?.bathedAt ?? admission.admissionDate,
-    patient: admission.patient,
-    latestVital: admission.vitalRecords[0] ?? null,
-    nextMedication: getNextMedication(admission.treatmentPlans),
-  };
 }
 
 export async function getDashboardSummary(today: Date) {
@@ -268,7 +107,7 @@ export async function getDashboardSummary(today: Date) {
   });
 
   const rows = admissions.map((admission) =>
-    toDashboardSummaryRow(admission, nowTime, laterTime)
+    toDashboardSummaryRow(admission as DashboardSummaryAdmissionRow, nowTime, laterTime)
   );
 
   return buildDashboardStats(rows);
@@ -328,6 +167,8 @@ export async function getDashboardQueue(today: Date) {
             orderBy: { scheduledTime: "asc" },
             select: {
               scheduledTime: true,
+              wasAdministered: true,
+              wasSkipped: true,
             },
           },
         },
@@ -335,7 +176,9 @@ export async function getDashboardQueue(today: Date) {
     },
   });
 
-  return admissions.map(toDashboardQueueAdmission);
+  return admissions.map((admission) =>
+    toDashboardQueueAdmission(admission as DashboardQueueAdmissionRow)
+  );
 }
 
 export async function getDashboardSecondaryData(): Promise<DashboardSecondaryData> {
