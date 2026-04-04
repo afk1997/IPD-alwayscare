@@ -7,8 +7,11 @@ import {
   getBathMutationTags,
   getFeedingMutationTags,
   getIsolationMutationTags,
+  getLabMutationTags,
   getMedicationMutationTags,
+  getNoteMutationTags,
   getVitalsMutationTags,
+  getFluidMutationTags,
 } from "../src/lib/clinical-revalidation";
 
 function getFunctionSource(source: string, name: string) {
@@ -41,6 +44,18 @@ const isolationSource = readFileSync(
   new URL("../src/actions/isolation.ts", import.meta.url),
   "utf8"
 );
+const fluidsSource = readFileSync(
+  new URL("../src/actions/fluids.ts", import.meta.url),
+  "utf8"
+);
+const labsSource = readFileSync(
+  new URL("../src/actions/labs.ts", import.meta.url),
+  "utf8"
+);
+const notesSource = readFileSync(
+  new URL("../src/actions/notes.ts", import.meta.url),
+  "utf8"
+);
 const admissionsSource = readFileSync(
   new URL("../src/actions/admissions.ts", import.meta.url),
   "utf8"
@@ -57,6 +72,8 @@ const notificationTags = [
 test("medication mutations invalidate the schedule meds cache", () => {
   assert.deepEqual(getMedicationMutationTags("adm-1"), [
     "schedule:meds",
+    "patient:adm-1:meds",
+    "patient:adm-1:logs",
     ...notificationTags,
   ]);
 });
@@ -64,6 +81,8 @@ test("medication mutations invalidate the schedule meds cache", () => {
 test("feeding mutations invalidate the schedule feedings cache", () => {
   assert.deepEqual(getFeedingMutationTags("adm-1"), [
     "schedule:feedings",
+    "patient:adm-1:food",
+    "patient:adm-1:logs",
     ...notificationTags,
   ]);
 });
@@ -71,25 +90,68 @@ test("feeding mutations invalidate the schedule feedings cache", () => {
 test("bath mutations invalidate the schedule baths cache", () => {
   assert.deepEqual(getBathMutationTags("adm-1"), [
     "schedule:baths",
+    "patient:adm-1:bath",
+    "patient:adm-1:logs",
     ...notificationTags,
   ]);
 });
 
 test("admission mutations invalidate all schedule caches", () => {
-  assert.deepEqual(getAdmissionMutationTags("adm-1"), [
+  assert.deepEqual(getAdmissionMutationTags("adm-1").slice(0, 12), [
     "schedule:meds",
     "schedule:feedings",
     "schedule:baths",
+    "patient:adm-1:shell",
+    "patient:adm-1:vitals",
+    "patient:adm-1:meds",
+    "patient:adm-1:food",
+    "patient:adm-1:notes",
+    "patient:adm-1:labs",
+    "patient:adm-1:bath",
+    "patient:adm-1:isolation",
+    "patient:adm-1:logs",
+  ]);
+  assert.deepEqual(getAdmissionMutationTags("adm-1").slice(12), [
     ...notificationTags,
   ]);
 });
 
 test("vitals mutations invalidate all notification caches", () => {
-  assert.deepEqual(getVitalsMutationTags("adm-1"), notificationTags);
+  assert.deepEqual(getVitalsMutationTags("adm-1"), [
+    "patient:adm-1:vitals",
+    "patient:adm-1:logs",
+    ...notificationTags,
+  ]);
 });
 
 test("isolation mutations invalidate all notification caches", () => {
-  assert.deepEqual(getIsolationMutationTags("adm-1"), notificationTags);
+  assert.deepEqual(getIsolationMutationTags("adm-1"), [
+    "patient:adm-1:isolation",
+    "patient:adm-1:logs",
+    ...notificationTags,
+  ]);
+});
+
+test("lab mutations invalidate the lab and isolation tabs", () => {
+  assert.deepEqual(getLabMutationTags("adm-1"), [
+    "patient:adm-1:labs",
+    "patient:adm-1:isolation",
+  ]);
+});
+
+test("note mutations invalidate notes and logs", () => {
+  assert.deepEqual(getNoteMutationTags("adm-1"), [
+    "patient:adm-1:notes",
+    "patient:adm-1:logs",
+  ]);
+});
+
+test("fluid mutations invalidate meds, notes, and logs", () => {
+  assert.deepEqual(getFluidMutationTags("adm-1"), [
+    "patient:adm-1:meds",
+    "patient:adm-1:notes",
+    "patient:adm-1:logs",
+  ]);
 });
 
 test("schedule-visible medication actions use the medication invalidation contract", () => {
@@ -172,6 +234,40 @@ test("isolation actions use the isolation invalidation contract", () => {
     assert.match(
       getFunctionSource(isolationSource, name),
       /updateClinicalTags\(\s*getIsolationMutationTags\([\s\S]*?\)\s*\);/
+    );
+  }
+});
+
+test("fluid actions use the fluid invalidation contract", () => {
+  for (const name of [
+    "startFluidTherapy",
+    "changeFluidRate",
+    "updateFluidTherapy",
+    "stopFluids",
+    "restartFluidTherapy",
+    "deleteFluidTherapy",
+  ]) {
+    assert.match(
+      getFunctionSource(fluidsSource, name),
+      /updateClinicalTags\(\s*getFluidMutationTags\([\s\S]*?\)\s*\);/
+    );
+  }
+});
+
+test("lab actions use the lab invalidation contract", () => {
+  for (const name of ["addLabResult", "updateLabResult", "deleteLabResult"]) {
+    assert.match(
+      getFunctionSource(labsSource, name),
+      /updateClinicalTags\(\s*getLabMutationTags\([\s\S]*?\)\s*\);/
+    );
+  }
+});
+
+test("note actions use the note invalidation contract", () => {
+  for (const name of ["addNote", "updateNote", "deleteNote"]) {
+    assert.match(
+      getFunctionSource(notesSource, name),
+      /updateClinicalTags\(\s*getNoteMutationTags\([\s\S]*?\)\s*\);/
     );
   }
 });
