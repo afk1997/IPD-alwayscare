@@ -36,11 +36,11 @@ export default async function ClinicalSetupPage({
 
   const occupiedSet = new Set(
     occupiedCages
-      .filter((a: any) => a.ward && a.cageNumber)
-      .map((a: any) => `${a.ward}:${a.cageNumber}`)
+      .filter((admission) => admission.ward && admission.cageNumber)
+      .map((admission) => `${admission.ward}:${admission.cageNumber}`)
   );
   const availableCages = cages.filter(
-    (c: any) => !occupiedSet.has(`${c.ward}:${c.cageNumber}`)
+    (cage) => !occupiedSet.has(`${cage.ward}:${cage.cageNumber}`)
   );
 
   return (
@@ -52,9 +52,9 @@ export default async function ClinicalSetupPage({
       </p>
       <ClinicalSetupForm
         admissionId={admissionId}
-        availableCages={availableCages.map((c: any) => ({
-          ward: c.ward,
-          cageNumber: c.cageNumber,
+        availableCages={availableCages.map((cage) => ({
+          ward: cage.ward,
+          cageNumber: cage.cageNumber,
         }))}
         activeDoctors={doctors}
       />

@@ -66,13 +66,13 @@ export default async function IsolationWardPage() {
   // Aggregate unique PPE across all isolation patients
   const allPpe: string[] = Array.from(
     new Set(
-      admissions.flatMap((a: any) => a.isolationProtocol?.ppeRequired ?? [])
+      admissions.flatMap((admission) => admission.isolationProtocol?.ppeRequired ?? [])
     )
   );
 
   // Check if any patient has an overdue disinfection
-  const anyOverdue = admissions.some((a: any) => {
-    const protocol = a.isolationProtocol;
+  const anyOverdue = admissions.some((admission) => {
+    const protocol = admission.isolationProtocol;
     if (!protocol) return false;
     const lastLog = protocol.disinfectionLogs[0];
     if (!lastLog) return false;
@@ -136,7 +136,7 @@ export default async function IsolationWardPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {admissions.map((admission: any) => {
+          {admissions.map((admission) => {
             const protocol = admission.isolationProtocol;
             const vitals = admission.vitalRecords[0] ?? null;
             const conditionCfg = admission.condition

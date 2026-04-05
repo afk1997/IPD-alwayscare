@@ -83,7 +83,7 @@ test("selectLatestVital returns null when there are no vitals", () => {
 });
 
 test("selectNextMedication returns the next incomplete administration", () => {
-  const nextMedication = selectNextMedication([
+  const treatmentPlans: Parameters<typeof selectNextMedication>[0] = [
     {
       drugName: "Amoxicillin",
       scheduledTimes: ["08:00", "12:00"],
@@ -99,7 +99,8 @@ test("selectNextMedication returns the next incomplete administration", () => {
         { scheduledTime: "09:00", wasAdministered: false, wasSkipped: false },
       ],
     },
-  ] as any);
+  ];
+  const nextMedication = selectNextMedication(treatmentPlans);
 
   assert.deepEqual(nextMedication, {
     drugName: "Meloxicam",
@@ -108,7 +109,7 @@ test("selectNextMedication returns the next incomplete administration", () => {
 });
 
 test("selectNextMedication falls back to the earliest scheduled slot without an administration row", () => {
-  const nextMedication = selectNextMedication([
+  const treatmentPlans: Parameters<typeof selectNextMedication>[0] = [
     {
       drugName: "Ceftriaxone",
       scheduledTimes: ["06:00", "14:00"],
@@ -121,7 +122,8 @@ test("selectNextMedication falls back to the earliest scheduled slot without an 
         { scheduledTime: "09:00", wasAdministered: true, wasSkipped: false },
       ],
     },
-  ] as any);
+  ];
+  const nextMedication = selectNextMedication(treatmentPlans);
 
   assert.deepEqual(nextMedication, {
     drugName: "Ceftriaxone",

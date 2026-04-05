@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     for (const plan of admission.treatmentPlans) {
       for (const scheduledStr of plan.scheduledTimes) {
         const admin = plan.administrations.find(
-          (a: any) => a.scheduledTime === scheduledStr
+          (administration) => administration.scheduledTime === scheduledStr
         );
         if (admin && (admin.wasAdministered || admin.wasSkipped)) continue;
 
@@ -182,7 +182,7 @@ export async function GET(request: Request) {
   });
 
   const recentSet = new Set(
-    recentAlerts.map((a: any) => `${a.alertType}:${a.admissionId}`)
+    recentAlerts.map((alert) => `${alert.alertType}:${alert.admissionId}`)
   );
   const newAlerts = alerts.filter(
     (a) => !recentSet.has(`${a.type}:${a.admissionId}`)

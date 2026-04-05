@@ -6,8 +6,9 @@ import { getNotificationsSnapshot } from "@/lib/notification-snapshot";
 import { formatInTimeZone } from "date-fns-tz";
 
 export async function GET() {
+  await connection();
+
   try {
-    await connection();
     const session = await getSession();
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

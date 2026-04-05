@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, X } from "lucide-react";
 import { useNotifications } from "./notification-provider";
 
 export function CriticalBanner() {
   const { notifications } = useNotifications();
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissedSignature, setDismissedSignature] = useState("");
   const router = useRouter();
 
   // When new critical/urgent notifications arrive after a dismiss, show the banner again
@@ -15,24 +15,11 @@ export function CriticalBanner() {
     (n) => n.type === "urgent" || n.type === "critical"
   );
 
-  // Track dismissed alert identities so replacement alerts re-show even when count is unchanged
-  const [lastDismissedSignature, setLastDismissedSignature] = useState("");
   const currentSignature = criticalAndUrgent
     .map((n) => n.id)
     .sort()
     .join("|");
-
-  useEffect(() => {
-    if (!currentSignature) {
-      setDismissed(false);
-      setLastDismissedSignature("");
-      return;
-    }
-
-    if (dismissed && currentSignature && currentSignature !== lastDismissedSignature) {
-      setDismissed(false);
-    }
-  }, [dismissed, currentSignature, lastDismissedSignature]);
+  const dismissed = currentSignature !== "" && currentSignature === dismissedSignature;
 
   if (criticalAndUrgent.length === 0 || dismissed) {
     return null;
@@ -42,8 +29,7 @@ export function CriticalBanner() {
 
   function handleDismiss(e: React.MouseEvent) {
     e.stopPropagation();
-    setDismissed(true);
-    setLastDismissedSignature(currentSignature);
+    setDismissedSignature(currentSignature);
   }
 
   function handleNavigate() {
