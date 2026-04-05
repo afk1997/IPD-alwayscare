@@ -265,3 +265,46 @@ export async function getManagementPatientLogsData(
 ): Promise<LogsTimelineEntry[]> {
   return getLogsTimelineEntries(admissionId);
 }
+
+export async function getManagementPatientTodayData(admissionId: string, today: Date) {
+  const [admission, proofs] = await Promise.all([
+    db.admission.findUnique({
+      where: { id: admissionId },
+      include: {
+        vitalRecords: { orderBy: { recordedAt: "desc" }, take: 1, include: { recordedBy: { select: { name: true } } } },
+        treatmentPlans: {
+          where: { isActive: true, deletedAt: null },
+          include: {
+            administrations: {
+              where: { scheduledDate: today },
+              include: { administeredBy: { select: { name: true } } },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        dietPlans: {
+          where: { isActive: true, deletedAt: null },
+          include: {
+            feedingSchedules: {
+              where: { isActive: true },
+              include: { feedingLogs: { where: { date: today }, take: 1, include: { loggedBy: { select: { name: true } } } } },
+            },
+          },
+        },
+        fluidTherapies: { where: { isActive: true }, select: { fluidType: true, rate: true, isActive: true } },
+        bathLogs: { orderBy: { bathedAt: "desc" }, take: 1 },
+        isolationProtocol: {
+          include: { disinfectionLogs: { orderBy: { performedAt: "desc" }, take: 1 } },
+        },
+      },
+    }),
+    getManagementPatientMediaProofs(admissionId),
+  ]);
+
+  const proofByRecordId = new Map<string, { fileId: string; fileName: string; isSkipped: boolean; skipReason: string | null }>();
+  for (const p of proofs) {
+    proofByRecordId.set(p.recordId, { fileId: p.fileId, fileName: p.fileName, isSkipped: p.fileId === "SKIPPED", skipReason: p.skipReason });
+  }
+
+  return { admission, proofByRecordId };
+}

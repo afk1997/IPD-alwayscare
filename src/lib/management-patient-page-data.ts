@@ -1,62 +1,31 @@
-export type ManagementPatientTabKey =
-  | "overview"
-  | "meds"
-  | "food"
-  | "vitals"
-  | "notes"
-  | "labs"
-  | "bath"
-  | "isolation"
-  | "media"
-  | "logs";
+export type ManagementPatientTabKey = "today" | "history" | "media";
 
 export const MANAGEMENT_PATIENT_TABS: ManagementPatientTabKey[] = [
-  "overview",
-  "meds",
-  "food",
-  "vitals",
-  "notes",
-  "labs",
-  "bath",
-  "isolation",
+  "today",
+  "history",
   "media",
-  "logs",
 ];
 
 export interface ManagementPatientTabLoadPlan {
-  overview: boolean;
-  meds: boolean;
-  food: boolean;
-  vitals: boolean;
-  notes: boolean;
-  labs: boolean;
-  bath: boolean;
-  isolation: boolean;
+  today: boolean;
+  history: boolean;
   media: boolean;
-  logs: boolean;
 }
 
 export function getManagementPatientTabLoadPlan(
   tab: string
 ): ManagementPatientTabLoadPlan {
+  const normalized = normalizeManagementPatientTab(tab);
   return {
-    overview: tab === "overview",
-    meds: tab === "meds",
-    food: tab === "food",
-    vitals: tab === "vitals",
-    notes: tab === "notes",
-    labs: tab === "labs",
-    bath: tab === "bath",
-    isolation: tab === "isolation",
-    media: tab === "media",
-    logs: tab === "logs",
+    today: normalized === "today",
+    history: normalized === "history",
+    media: normalized === "media",
   };
 }
 
 export function normalizeManagementPatientTab(
   tab: string | undefined
 ): ManagementPatientTabKey {
-  return MANAGEMENT_PATIENT_TABS.includes(tab as ManagementPatientTabKey)
-    ? (tab as ManagementPatientTabKey)
-    : "overview";
+  if (tab === "today" || tab === "history" || tab === "media") return tab;
+  return "today";
 }
