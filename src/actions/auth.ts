@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { createSession, destroySession } from "@/lib/auth";
 
 export async function login(_prevState: unknown, formData: FormData) {
-  const phone = formData.get("phone") as string;
+  const phone = (formData.get("phone") as string)?.replace(/[^\d]/g, "");
   const password = formData.get("password") as string;
   let redirectTo = "/";
 

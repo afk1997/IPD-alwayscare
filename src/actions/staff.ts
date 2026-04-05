@@ -19,7 +19,7 @@ export async function createStaff(_prevState: unknown, formData: FormData) {
     assertAdminOrDoctor(session.role);
 
     const name = (formData.get("name") as string)?.trim();
-    const phone = (formData.get("phone") as string)?.trim();
+    const phone = (formData.get("phone") as string)?.trim().replace(/[^\d]/g, "");
     const password = formData.get("password") as string;
     const role = formData.get("role") as string;
 
