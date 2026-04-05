@@ -215,7 +215,7 @@ export async function GET(request: Request) {
       await sendManagementPush({
         title,
         body: alert.message,
-        url: `/management/patients/${alert.admissionId}?tab=overview`,
+        url: `/management/patients/${alert.admissionId}?tab=today`,
         tag: `${alert.type}:${alert.admissionId}`,
       });
     }

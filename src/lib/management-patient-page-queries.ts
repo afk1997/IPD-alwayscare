@@ -301,9 +301,12 @@ export async function getManagementPatientTodayData(admissionId: string, today: 
     getManagementPatientMediaProofs(admissionId),
   ]);
 
+  // Proofs are fetched createdAt desc — keep the newest per record (first seen wins)
   const proofByRecordId = new Map<string, { fileId: string; fileName: string; isSkipped: boolean; skipReason: string | null }>();
   for (const p of proofs) {
-    proofByRecordId.set(p.recordId, { fileId: p.fileId, fileName: p.fileName, isSkipped: p.fileId === "SKIPPED", skipReason: p.skipReason });
+    if (!proofByRecordId.has(p.recordId)) {
+      proofByRecordId.set(p.recordId, { fileId: p.fileId, fileName: p.fileName, isSkipped: p.fileId === "SKIPPED", skipReason: p.skipReason });
+    }
   }
 
   return { admission, proofByRecordId };

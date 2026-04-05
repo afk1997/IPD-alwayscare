@@ -4,9 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 
-function isVideo(fileName: string): boolean {
-  return /\.(mp4|mov|webm|avi|mkv)$/i.test(fileName);
-}
+import { isVideo } from "@/lib/media-utils";
+import { driveMediaUrl } from "@/lib/drive-url";
 
 interface LightboxItem {
   fileId: string;
@@ -75,7 +74,7 @@ export function ProofLightbox({ items, initialIndex, onClose }: ProofLightboxPro
           </div>
         ) : isVideo(item.fileName ?? item.actionDetail) ? (
           <video
-            src={`/api/media?id=${item.fileId}`}
+            src={driveMediaUrl(item.fileId)}
             controls
             autoPlay
             className="max-h-[80vh] max-w-full rounded-lg"
@@ -83,7 +82,7 @@ export function ProofLightbox({ items, initialIndex, onClose }: ProofLightboxPro
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/api/media?id=${item.fileId}`}
+            src={driveMediaUrl(item.fileId)}
             alt={`${item.actionType} proof for ${item.patientName}`}
             className="max-h-[80vh] max-w-full object-contain"
           />

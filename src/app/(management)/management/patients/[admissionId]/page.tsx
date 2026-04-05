@@ -8,7 +8,7 @@ import {
 import { getPatientNotesData, getPatientLabsData, getPatientPhotosData } from "@/lib/patient-page-queries";
 import { getLogsTimelineEntries } from "@/lib/logs-queries";
 import { normalizeManagementPatientTab, getManagementPatientTabLoadPlan } from "@/lib/management-patient-page-data";
-import { getTodayUTCDate, formatIST } from "@/lib/date-utils";
+import { getTodayUTCDate, formatIST, getNowTimeIST } from "@/lib/date-utils";
 import { TodayTab } from "@/components/management/today-tab";
 import type { TodayTabProps } from "@/components/management/today-tab";
 import { HistoryTab } from "@/components/management/history-tab";
@@ -66,12 +66,7 @@ export default async function ManagementPatientPage({ params, searchParams }: Pr
       const [h, m] = hhmm.split(":").map(Number);
       return h * 60 + m;
     };
-    const nowMinutes = (() => {
-      const now = new Date();
-      const istH = ((now.getUTCHours() + 5) % 24) + (now.getUTCMinutes() + 30 >= 60 ? 1 : 0);
-      const istM = (now.getUTCMinutes() + 30) % 60;
-      return istH * 60 + istM;
-    })();
+    const nowMinutes = toMin(getNowTimeIST());
 
     const meds = a.treatmentPlans.flatMap((plan) =>
       (plan.scheduledTimes as string[]).map((time) => {

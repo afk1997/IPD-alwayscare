@@ -6,10 +6,7 @@ import { ProofLightbox } from "./proof-lightbox";
 import { formatInTimeZone } from "date-fns-tz";
 import { Camera, Play } from "lucide-react";
 import { driveMediaUrl } from "@/lib/drive-url";
-
-function isVideo(fileName: string): boolean {
-  return /\.(mp4|mov|webm|avi|mkv)$/i.test(fileName);
-}
+import { isVideo } from "@/lib/media-utils";
 
 interface ProofCarouselProps {
   items: ProofCarouselItem[];

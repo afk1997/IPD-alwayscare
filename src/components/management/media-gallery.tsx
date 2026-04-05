@@ -4,10 +4,7 @@ import { useState } from "react";
 import { ProofLightbox } from "./proof-lightbox";
 import { driveMediaUrl } from "@/lib/drive-url";
 import { Play } from "lucide-react";
-
-function isVideo(fileName: string): boolean {
-  return /\.(mp4|mov|webm|avi|mkv)$/i.test(fileName);
-}
+import { isVideo } from "@/lib/media-utils";
 
 interface MediaItem {
   fileId: string;

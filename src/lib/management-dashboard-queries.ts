@@ -10,6 +10,7 @@ function toMinutes(hhmm: string): number {
 export interface ProofCarouselItem {
   fileId: string;
   fileName: string;
+  admissionId: string;
   patientName: string;
   actionType: "Med" | "Fed" | "Bath" | "Vitals" | "Disinfect";
   actionDetail: string;
@@ -193,13 +194,13 @@ export async function getManagementDashboardData(wardFilter?: string): Promise<M
   const activeIds = active.map((a) => a.id);
   const proofCarousel = await getRecentProofs(activeIds, today);
 
-  // Fill proof counts per patient card
-  const proofCountByPatient = new Map<string, number>();
+  // Fill proof counts per patient card (keyed by admissionId to avoid name collisions)
+  const proofCountByAdmission = new Map<string, number>();
   for (const p of proofCarousel) {
-    proofCountByPatient.set(p.patientName, (proofCountByPatient.get(p.patientName) ?? 0) + 1);
+    proofCountByAdmission.set(p.admissionId, (proofCountByAdmission.get(p.admissionId) ?? 0) + 1);
   }
   for (const card of patientCards) {
-    card.proofCountToday = proofCountByPatient.get(card.patientName) ?? 0;
+    card.proofCountToday = proofCountByAdmission.get(card.admissionId) ?? 0;
   }
 
   // Stats
@@ -235,23 +236,23 @@ async function getRecentProofs(admissionIds: string[], today: Date): Promise<Pro
   const [medAdmins, feedingLogs, bathLogs, vitalRecords, disinfectionLogs] = await Promise.all([
     db.medicationAdministration.findMany({
       where: { treatmentPlan: { admissionId: { in: admissionIds } }, scheduledDate: today },
-      select: { id: true, scheduledTime: true, actualTime: true, treatmentPlan: { select: { drugName: true, admission: { select: { patient: { select: { name: true } } } } } }, administeredBy: { select: { name: true } } },
+      select: { id: true, scheduledTime: true, actualTime: true, treatmentPlan: { select: { drugName: true, admission: { select: { id: true, patient: { select: { name: true } } } } } }, administeredBy: { select: { name: true } } },
     }),
     db.feedingLog.findMany({
       where: { feedingSchedule: { dietPlan: { admissionId: { in: admissionIds } } }, date: today, status: { not: "PENDING" } },
-      select: { id: true, createdAt: true, feedingSchedule: { select: { foodType: true, dietPlan: { select: { admission: { select: { patient: { select: { name: true } } } } } } } }, loggedBy: { select: { name: true } } },
+      select: { id: true, createdAt: true, feedingSchedule: { select: { foodType: true, dietPlan: { select: { admission: { select: { id: true, patient: { select: { name: true } } } } } } } }, loggedBy: { select: { name: true } } },
     }),
     db.bathLog.findMany({
       where: { admissionId: { in: admissionIds }, bathedAt: { gte: today } },
-      select: { id: true, bathedAt: true, admission: { select: { patient: { select: { name: true } } } }, bathedBy: { select: { name: true } } },
+      select: { id: true, bathedAt: true, admission: { select: { id: true, patient: { select: { name: true } } } }, bathedBy: { select: { name: true } } },
     }),
     db.vitalRecord.findMany({
       where: { admissionId: { in: admissionIds }, recordedAt: { gte: today } },
-      select: { id: true, recordedAt: true, admission: { select: { patient: { select: { name: true } } } }, recordedBy: { select: { name: true } } },
+      select: { id: true, recordedAt: true, admission: { select: { id: true, patient: { select: { name: true } } } }, recordedBy: { select: { name: true } } },
     }),
     db.disinfectionLog.findMany({
       where: { isolationProtocol: { admissionId: { in: admissionIds } }, performedAt: { gte: today } },
-      select: { id: true, performedAt: true, isolationProtocol: { select: { admission: { select: { patient: { select: { name: true } } } } } }, performedBy: { select: { name: true } } },
+      select: { id: true, performedAt: true, isolationProtocol: { select: { admission: { select: { id: true, patient: { select: { name: true } } } } } }, performedBy: { select: { name: true } } },
     }),
   ]);
 
@@ -272,22 +273,22 @@ async function getRecentProofs(admissionIds: string[], today: Date): Promise<Pro
     take: 20,
   });
 
-  const recordContextMap = new Map<string, { patientName: string; actionType: ProofCarouselItem["actionType"]; actionDetail: string; performedBy: string; timestamp: Date }>();
+  const recordContextMap = new Map<string, { admissionId: string; patientName: string; actionType: ProofCarouselItem["actionType"]; actionDetail: string; performedBy: string; timestamp: Date }>();
 
   for (const r of medAdmins) {
-    recordContextMap.set(r.id, { patientName: r.treatmentPlan.admission.patient.name, actionType: "Med", actionDetail: r.treatmentPlan.drugName, performedBy: r.administeredBy?.name ?? "Unknown", timestamp: r.actualTime ?? new Date() });
+    recordContextMap.set(r.id, { admissionId: r.treatmentPlan.admission.id, patientName: r.treatmentPlan.admission.patient.name, actionType: "Med", actionDetail: r.treatmentPlan.drugName, performedBy: r.administeredBy?.name ?? "Unknown", timestamp: r.actualTime ?? new Date() });
   }
   for (const r of feedingLogs) {
-    recordContextMap.set(r.id, { patientName: r.feedingSchedule.dietPlan.admission.patient.name, actionType: "Fed", actionDetail: r.feedingSchedule.foodType, performedBy: r.loggedBy.name, timestamp: r.createdAt });
+    recordContextMap.set(r.id, { admissionId: r.feedingSchedule.dietPlan.admission.id, patientName: r.feedingSchedule.dietPlan.admission.patient.name, actionType: "Fed", actionDetail: r.feedingSchedule.foodType, performedBy: r.loggedBy.name, timestamp: r.createdAt });
   }
   for (const r of bathLogs) {
-    recordContextMap.set(r.id, { patientName: r.admission.patient.name, actionType: "Bath", actionDetail: "Bath", performedBy: r.bathedBy.name, timestamp: r.bathedAt });
+    recordContextMap.set(r.id, { admissionId: r.admission.id, patientName: r.admission.patient.name, actionType: "Bath", actionDetail: "Bath", performedBy: r.bathedBy.name, timestamp: r.bathedAt });
   }
   for (const r of vitalRecords) {
-    recordContextMap.set(r.id, { patientName: r.admission.patient.name, actionType: "Vitals", actionDetail: "Vitals", performedBy: r.recordedBy.name, timestamp: r.recordedAt });
+    recordContextMap.set(r.id, { admissionId: r.admission.id, patientName: r.admission.patient.name, actionType: "Vitals", actionDetail: "Vitals", performedBy: r.recordedBy.name, timestamp: r.recordedAt });
   }
   for (const r of disinfectionLogs) {
-    recordContextMap.set(r.id, { patientName: r.isolationProtocol.admission.patient.name, actionType: "Disinfect", actionDetail: "Disinfection", performedBy: r.performedBy.name, timestamp: r.performedAt });
+    recordContextMap.set(r.id, { admissionId: r.isolationProtocol.admission.id, patientName: r.isolationProtocol.admission.patient.name, actionType: "Disinfect", actionDetail: "Disinfection", performedBy: r.performedBy.name, timestamp: r.performedAt });
   }
 
   return proofs.map((proof) => {
@@ -295,6 +296,7 @@ async function getRecentProofs(admissionIds: string[], today: Date): Promise<Pro
     return {
       fileId: proof.fileId,
       fileName: proof.fileName,
+      admissionId: ctx?.admissionId ?? "",
       patientName: ctx?.patientName ?? "Unknown",
       actionType: ctx?.actionType ?? "Vitals",
       actionDetail: ctx?.actionDetail ?? "",
