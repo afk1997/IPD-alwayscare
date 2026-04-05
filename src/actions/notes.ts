@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { requireDoctor, requireWriteAccess } from "@/lib/auth";
 import { validateNoteCategory } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
+import {
+  getNoteMutationTags,
+  updateClinicalTags,
+} from "@/lib/clinical-revalidation";
 
 export async function addNote(admissionId: string, formData: FormData) {
   try {
@@ -23,6 +27,7 @@ export async function addNote(admissionId: string, formData: FormData) {
     await db.clinicalNote.create({
       data: { admissionId, category: validateNoteCategory(category), content, recordedById: session.staffId },
     });
+    updateClinicalTags(getNoteMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
@@ -55,6 +60,7 @@ export async function updateNote(noteId: string, formData: FormData) {
       data: { category: validateNoteCategory(category), content },
     });
 
+    updateClinicalTags(getNoteMutationTags(note.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
@@ -79,6 +85,7 @@ export async function deleteNote(noteId: string) {
     }
 
     await db.clinicalNote.delete({ where: { id: noteId } });
+    updateClinicalTags(getNoteMutationTags(note.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {

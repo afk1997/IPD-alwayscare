@@ -5,6 +5,11 @@ import { db } from "@/lib/db";
 import { requireDoctor, requireWriteAccess } from "@/lib/auth";
 import { handleActionError } from "@/lib/action-utils";
 import { markDeletedInDrive } from "@/lib/google-auth";
+import {
+  getIsolationMutationTags,
+  updateClinicalTags,
+} from "@/lib/clinical-revalidation";
+import { invalidateDashboardTags } from "@/lib/dashboard-revalidation";
 
 export async function logDisinfection(isolationProtocolId: string) {
   try {
@@ -26,6 +31,7 @@ export async function logDisinfection(isolationProtocolId: string) {
       data: { isolationProtocolId, performedById: session.staffId },
     });
 
+    updateClinicalTags(getIsolationMutationTags(protocol.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true, id: disinfectionLog.id };
@@ -82,10 +88,11 @@ export async function updateIsolationProtocol(
       data.clearedDate = null;
     }
 
-    const protocol = await db.isolationProtocol.update({
+    await db.isolationProtocol.update({
       where: { id: protocolId },
       data,
     });
+    updateClinicalTags(getIsolationMutationTags(currentProtocol.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true };
@@ -138,6 +145,8 @@ export async function updateIsolationSetup(protocolId: string, formData: FormDat
       },
     });
 
+    invalidateDashboardTags("setup");
+    updateClinicalTags(getIsolationMutationTags(protocol.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true };
@@ -180,6 +189,7 @@ export async function deleteDisinfectionLog(logId: string) {
     });
 
     await db.disinfectionLog.delete({ where: { id: logId } });
+    updateClinicalTags(getIsolationMutationTags(log.isolationProtocol.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/isolation");
     return { success: true };

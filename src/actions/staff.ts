@@ -223,7 +223,7 @@ export async function deleteStaff(staffId: string) {
     }
 
     // Soft-delete + session purge in a single transaction
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx) => {
       await tx.staff.update({
         where: { id: staffId },
         data: { deletedAt: new Date(), isActive: false },

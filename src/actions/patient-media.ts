@@ -94,7 +94,7 @@ export async function setProfilePhoto(mediaId: string) {
     if (!media) return { error: "Media not found" };
     if (!media.mimeType.startsWith("image/")) return { error: "Only images can be set as profile photo" };
 
-    await db.$transaction(async (tx: any) => {
+    await db.$transaction(async (tx) => {
       await tx.patientMedia.updateMany({
         where: { patientId: media.patientId, isProfilePhoto: true },
         data: { isProfilePhoto: false },

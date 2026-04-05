@@ -6,6 +6,11 @@ import { requireDoctor, requireWriteAccess } from "@/lib/auth";
 import { validateFeedingStatus } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
 import { toUTCDate } from "@/lib/date-utils";
+import {
+  getFeedingMutationTags,
+  updateClinicalTags,
+} from "@/lib/clinical-revalidation";
+import { invalidateDashboardTags } from "@/lib/dashboard-revalidation";
 
 type SubmittedFeedingSchedule = {
   id?: string;
@@ -31,7 +36,7 @@ export async function createDietPlan(admissionId: string, formData: FormData) {
 
     if (!dietType) return { error: "Diet type is required" };
 
-    let schedules: SubmittedFeedingSchedule[] = [];
+    const schedules: SubmittedFeedingSchedule[] = [];
     if (schedulesRaw) {
       let parsed: unknown;
       try {
@@ -226,6 +231,8 @@ export async function createDietPlan(admissionId: string, formData: FormData) {
       }
     });
 
+    invalidateDashboardTags("summary");
+    updateClinicalTags(getFeedingMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     revalidatePath("/management");
@@ -292,7 +299,11 @@ export async function logFeeding(feedingScheduleId: string, formData: FormData) 
       },
     });
 
+    updateClinicalTags(
+      getFeedingMutationTags(feedingSchedule.dietPlan.admissionId)
+    );
     revalidatePath("/patients/[admissionId]", "page");
+    revalidatePath("/schedule");
     return { success: true, id: feedingLog.id };
   } catch (error) {
     return handleActionError(error);
@@ -337,7 +348,11 @@ export async function updateFeeding(feedingLogId: string, formData: FormData) {
       data: { status: validateFeedingStatus(status), amountConsumed, notes },
     });
 
+    updateClinicalTags(
+      getFeedingMutationTags(feedingLog.feedingSchedule.dietPlan.admissionId)
+    );
     revalidatePath("/patients/[admissionId]", "page");
+    revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -378,7 +393,11 @@ export async function deleteFeeding(feedingLogId: string) {
         notes: `Deleted by ${session.name} at ${new Date().toISOString()}`,
       },
     });
+    updateClinicalTags(
+      getFeedingMutationTags(feedingLog.feedingSchedule.dietPlan.admissionId)
+    );
     revalidatePath("/patients/[admissionId]", "page");
+    revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
     return handleActionError(error);

@@ -1,11 +1,16 @@
-export const dynamic = "force-dynamic";
-
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { formatInTimeZone } from "date-fns-tz";
-import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
-import { isBathDue, getTodayUTCDate } from "@/lib/date-utils";
+import { getTodayUTCDate } from "@/lib/date-utils";
+import {
+  filterDashboardQueue,
+  sortDashboardQueue,
+} from "@/lib/dashboard-data";
+import {
+  getDashboardQueue,
+  getDashboardSecondaryData,
+  getDashboardSummary,
+} from "@/lib/dashboard-queries";
 import { SummaryCards } from "@/components/dashboard/summary-cards";
 import { IsolationAlert } from "@/components/dashboard/isolation-alert";
 import { PendingSetup } from "@/components/dashboard/pending-setup";
@@ -23,132 +28,24 @@ export default async function DashboardPage({
   if (!session) redirect("/login");
 
   const { ward: wardFilter } = await searchParams;
-
-  
   const today = getTodayUTCDate();
-
-  const admissions = await db.admission.findMany({
-    where: {
-      status: { in: ["ACTIVE", "REGISTERED"] },
-      deletedAt: null,
-      patient: { deletedAt: null },
-    },
-    include: {
-      patient: true,
-      admittedBy: { select: { name: true } },
-      vitalRecords: {
-        orderBy: { recordedAt: "desc" },
-        take: 1,
-      },
-      treatmentPlans: {
-        where: { isActive: true },
-        include: {
-          administrations: {
-            where: { scheduledDate: today },
-          },
-        },
-      },
-      bathLogs: {
-        orderBy: { bathedAt: "desc" },
-        take: 1,
-      },
-      dietPlans: {
-        where: { isActive: true },
-        include: {
-          feedingSchedules: {
-            where: { isActive: true },
-          },
-        },
-      },
-      isolationProtocol: {
-        select: { disease: true, ppeRequired: true },
-      },
-    },
-    orderBy: { admissionDate: "desc" },
-  });
-
-  const activeAdmissions = admissions.filter((a: any) => a.status === "ACTIVE");
-  const registeredAdmissions = admissions.filter(
-    (a: any) => a.status === "REGISTERED"
+  const [stats, queueAdmissions, secondaryData] = await Promise.all([
+    getDashboardSummary(today),
+    getDashboardQueue(today),
+    getDashboardSecondaryData(),
+  ]);
+  const sortedActive = sortDashboardQueue(queueAdmissions);
+  const filteredAdmissions = filterDashboardQueue(sortedActive, wardFilter);
+  const generalPatients = sortedActive.filter(
+    (admission) => admission.ward === "GENERAL"
   );
-  const isolationAdmissions = activeAdmissions.filter(
-    (a: any) => a.ward === "ISOLATION"
+  const isolationPatients = sortedActive.filter(
+    (admission) => admission.ward === "ISOLATION"
   );
-
-  // Compute summary stats
-  const criticalCount = activeAdmissions.filter(
-    (a: any) => a.condition === "CRITICAL"
-  ).length;
-
-  const pendingMedsCount = activeAdmissions.reduce((sum: number, a: any) => {
-    return sum + a.treatmentPlans.reduce((planSum: number, plan: any) => {
-      if (!plan.isActive) return planSum;
-      const totalSlots = plan.scheduledTimes.length;
-      const doneSlots = plan.administrations.filter(
-        (adm: any) => adm.wasAdministered || adm.wasSkipped
-      ).length;
-      return planSum + Math.max(0, totalSlots - doneSlots);
-    }, 0);
-  }, 0);
-
-  // Feedings in next ~2 hours (IST-aware)
-  const nowTimeStr = formatInTimeZone(new Date(), "Asia/Kolkata", "HH:mm");
-  const twoHoursLater = new Date(Date.now() + 2 * 60 * 60 * 1000);
-  const laterTimeStr = formatInTimeZone(twoHoursLater, "Asia/Kolkata", "HH:mm");
-
-  const feedingsCount = activeAdmissions.reduce((sum: number, a: any) => {
-    return (
-      sum +
-      a.dietPlans.reduce((planSum: number, plan: any) => {
-        const upcoming = plan.feedingSchedules.filter((s: any) => {
-          if (laterTimeStr < nowTimeStr) {
-            // Crosses midnight: show feedings from now to midnight OR midnight to laterTime
-            return s.scheduledTime >= nowTimeStr || s.scheduledTime <= laterTimeStr;
-          }
-          return s.scheduledTime >= nowTimeStr && s.scheduledTime <= laterTimeStr;
-        }).length;
-        return planSum + upcoming;
-      }, 0)
-    );
-  }, 0);
-
-  const bathsDueCount = activeAdmissions.filter((a: any) => {
-    const ref =
-      a.bathLogs.length > 0 ? a.bathLogs[0].bathedAt : a.admissionDate;
-    return isBathDue(ref).isDue;
-  }).length;
-
-  const stats = {
-    totalActive: activeAdmissions.length,
-    criticalCount,
-    pendingMedsCount,
-    feedingsCount,
-    bathsDueCount,
-  };
-
-  // Sort active admissions: CRITICAL first, then by admissionDate desc
-  const sortedActive = [...activeAdmissions].sort((a: any, b: any) => {
-    const aIsCritical = a.condition === "CRITICAL" ? 0 : 1;
-    const bIsCritical = b.condition === "CRITICAL" ? 0 : 1;
-    if (aIsCritical !== bIsCritical) return aIsCritical - bIsCritical;
-    return (
-      new Date(b.admissionDate).getTime() - new Date(a.admissionDate).getTime()
-    );
-  });
-
-  // Group by ward: General first, then Isolation, then others
-  const wardOrder = ["GENERAL", "ISOLATION", "ICU"];
-  const generalPatients = sortedActive.filter((a: any) => a.ward === "GENERAL");
-  const isolationPatients = sortedActive.filter((a: any) => a.ward === "ISOLATION");
   const otherPatients = sortedActive.filter(
-    (a: any) => a.ward !== "GENERAL" && a.ward !== "ISOLATION"
+    (admission) =>
+      admission.ward !== "GENERAL" && admission.ward !== "ISOLATION"
   );
-
-  // Apply ward filter from URL
-  let filteredAdmissions = sortedActive;
-  if (wardFilter) {
-    filteredAdmissions = sortedActive.filter((a: any) => a.ward === wardFilter);
-  }
 
   const isDoctor = session.role === "DOCTOR";
 
@@ -156,16 +53,19 @@ export default async function DashboardPage({
     <div className="mx-auto max-w-2xl space-y-4 p-4">
       <SummaryCards stats={stats} />
 
-      <IsolationAlert admissions={isolationAdmissions} />
+      <IsolationAlert admissions={secondaryData.isolationAdmissions} />
 
-      <PendingSetup admissions={registeredAdmissions} isDoctor={isDoctor} />
+      <PendingSetup
+        admissions={secondaryData.registeredAdmissions}
+        isDoctor={isDoctor}
+      />
 
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-foreground">
           Active Patients
-          {activeAdmissions.length > 0 && (
+          {queueAdmissions.length > 0 && (
             <span className="ml-1.5 text-muted-foreground font-normal">
-              ({activeAdmissions.length})
+              ({queueAdmissions.length})
             </span>
           )}
         </h2>

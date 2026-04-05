@@ -77,6 +77,7 @@ export function ScheduleMedRow({
   const [checkLoading, setCheckLoading] = useState(false);
   const [skipOpen, setSkipOpen] = useState(false);
   const [proofDialogOpen, setProofDialogOpen] = useState(false);
+  const [pressedControl, setPressedControl] = useState<"check" | "skip" | null>(null);
 
   const isAdministered = optimisticAdmin?.wasAdministered === true;
   const isSkipped = optimisticAdmin?.wasSkipped === true;
@@ -91,6 +92,12 @@ export function ScheduleMedRow({
   function handleCheck() {
     if (isAdministered || checkLoading) return;
     setProofDialogOpen(true);
+  }
+
+  function clearPressedControl(control: "check" | "skip") {
+    setTimeout(() => {
+      setPressedControl((current) => (current === control ? null : current));
+    }, 120);
   }
 
   async function handleProofComplete(proofs: ProofFile[]) {
@@ -189,14 +196,32 @@ export function ScheduleMedRow({
 
   return (
     <>
-      <div className={cn("flex items-center gap-3 rounded-lg border p-3 mb-2", rowBg)}>
+      <div
+        className={cn("flex items-center gap-3 rounded-lg border p-3 mb-2", rowBg)}
+        aria-busy={checkLoading || undefined}
+      >
         {/* Checkbox */}
         <button
           type="button"
           onClick={handleCheck}
+          data-pressed={pressedControl === "check" ? "true" : "false"}
+          onPointerDown={() => setPressedControl("check")}
+          onPointerUp={() => clearPressedControl("check")}
+          onPointerCancel={() => clearPressedControl("check")}
+          onPointerLeave={() => clearPressedControl("check")}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              setPressedControl("check");
+            }
+          }}
+          onKeyUp={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              clearPressedControl("check");
+            }
+          }}
           disabled={isAdministered || isSkipped || checkLoading}
           className={cn(
-            "flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400",
+            "schedule-action-button flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400",
             isAdministered || isSkipped
               ? "cursor-default"
               : "cursor-pointer active:scale-95"
@@ -283,11 +308,37 @@ export function ScheduleMedRow({
           <button
             type="button"
             onClick={() => setSkipOpen(true)}
+            data-pressed={pressedControl === "skip" ? "true" : "false"}
+            onPointerDown={() => setPressedControl("skip")}
+            onPointerUp={() => clearPressedControl("skip")}
+            onPointerCancel={() => clearPressedControl("skip")}
+            onPointerLeave={() => clearPressedControl("skip")}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                setPressedControl("skip");
+              }
+            }}
+            onKeyUp={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                clearPressedControl("skip");
+              }
+            }}
             disabled={checkLoading}
-            className="flex-shrink-0 rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+            className="schedule-action-button flex-shrink-0 rounded-md border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50"
           >
             Skip
           </button>
+        )}
+
+        <span
+          className="schedule-action-indicator"
+          data-pending={checkLoading ? "true" : "false"}
+          aria-hidden="true"
+        />
+        {checkLoading && (
+          <span className="sr-only">
+            Recording medication action for {patientName}
+          </span>
         )}
 
         {/* Overdue indicator */}

@@ -7,6 +7,11 @@ import { validateMedRoute, validateFrequency } from "@/lib/validators";
 import { handleActionError } from "@/lib/action-utils";
 import { toUTCDate } from "@/lib/date-utils";
 import { markDeletedInDrive } from "@/lib/google-auth";
+import {
+  getMedicationMutationTags,
+  updateClinicalTags,
+} from "@/lib/clinical-revalidation";
+import { invalidateDashboardTags } from "@/lib/dashboard-revalidation";
 
 export async function prescribeMedication(admissionId: string, formData: FormData) {
   try {
@@ -60,6 +65,8 @@ export async function prescribeMedication(admissionId: string, formData: FormDat
       },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getMedicationMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -93,6 +100,8 @@ export async function stopMedication(treatmentPlanId: string) {
       },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getMedicationMutationTags(plan.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -152,6 +161,8 @@ export async function administerDose(
       },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getMedicationMutationTags(plan.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true, id: administration.id };
@@ -210,6 +221,8 @@ export async function updateMedication(treatmentPlanId: string, formData: FormDa
       },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getMedicationMutationTags(plan.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -239,7 +252,7 @@ export async function deleteMedication(treatmentPlanId: string) {
       where: { treatmentPlanId },
       select: { id: true },
     });
-    const adminIds = administrations.map((a: any) => a.id);
+    const adminIds = administrations.map(({ id }) => id);
 
     if (adminIds.length > 0) {
       const proofs = await db.proofAttachment.findMany({
@@ -257,6 +270,8 @@ export async function deleteMedication(treatmentPlanId: string) {
       data: { deletedAt: new Date(), isActive: false },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getMedicationMutationTags(plan.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -310,6 +325,8 @@ export async function undoAdministration(administrationId: string) {
       where: { recordId: administrationId, recordType: "MedicationAdministration" },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getMedicationMutationTags(admin.treatmentPlan.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -372,6 +389,8 @@ export async function skipDose(
       },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getMedicationMutationTags(plan.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };

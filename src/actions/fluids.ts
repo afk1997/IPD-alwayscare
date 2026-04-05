@@ -5,6 +5,10 @@ import { db } from "@/lib/db";
 import { requireDoctor } from "@/lib/auth";
 import { handleActionError } from "@/lib/action-utils";
 import { markDeletedInDrive } from "@/lib/google-auth";
+import {
+  getFluidMutationTags,
+  updateClinicalTags,
+} from "@/lib/clinical-revalidation";
 
 export async function startFluidTherapy(admissionId: string, formData: FormData) {
   try {
@@ -37,6 +41,7 @@ export async function startFluidTherapy(admissionId: string, formData: FormData)
       },
     });
 
+    updateClinicalTags(getFluidMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -84,6 +89,7 @@ export async function changeFluidRate(fluidTherapyId: string, formData: FormData
       }),
     ]);
 
+    updateClinicalTags(getFluidMutationTags(fluidTherapy.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -141,6 +147,7 @@ export async function updateFluidTherapy(fluidId: string, formData: FormData) {
         : []),
     ]);
 
+    updateClinicalTags(getFluidMutationTags(fluid.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -183,6 +190,7 @@ export async function stopFluids(fluidTherapyId: string) {
       }),
     ]);
 
+    updateClinicalTags(getFluidMutationTags(fluidTherapy.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/schedule");
     return { success: true };
@@ -227,6 +235,7 @@ export async function restartFluidTherapy(fluidTherapyId: string) {
       }),
     ]);
 
+    updateClinicalTags(getFluidMutationTags(fluid.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
@@ -274,6 +283,7 @@ export async function deleteFluidTherapy(fluidTherapyId: string) {
       }),
     ]);
 
+    updateClinicalTags(getFluidMutationTags(fluid.admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {

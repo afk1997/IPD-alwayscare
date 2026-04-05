@@ -1,5 +1,7 @@
 "use server";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -14,6 +16,15 @@ import {
 } from "@/lib/validators";
 import { ActionUserError, handleActionError } from "@/lib/action-utils";
 import { markDeletedInDrive } from "@/lib/google-auth";
+import {
+  getAdmissionMutationTags,
+  getAdmissionMutationTagsForAdmissions,
+  updateClinicalTags,
+} from "@/lib/clinical-revalidation";
+import {
+  admissionDashboardInvalidations,
+  invalidateDashboardTags,
+} from "@/lib/dashboard-revalidation";
 
 export async function registerPatient(_prevState: unknown, formData: FormData) {
   try {
@@ -60,6 +71,8 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
       return { patientId: patient.id, admissionId: admission.id };
     });
 
+    invalidateDashboardTags("setup");
+    updateClinicalTags(getAdmissionMutationTags(result.admissionId));
     revalidatePath("/");
     return { success: true, admissionId: result.admissionId, patientId: result.patientId };
   } catch (error) {
@@ -113,6 +126,8 @@ export async function cancelRegistration(admissionId: string) {
       }
     });
 
+    invalidateDashboardTags("setup");
+    updateClinicalTags(getAdmissionMutationTags(admissionId));
     revalidatePath("/");
     return { success: true };
   } catch (error) {
@@ -166,6 +181,8 @@ export async function editRegisteredPatient(admissionId: string, formData: FormD
       });
     });
 
+    invalidateDashboardTags("setup");
+    updateClinicalTags(getAdmissionMutationTags(admissionId));
     revalidatePath("/");
     return { success: true };
   } catch (error) {
@@ -397,7 +414,10 @@ export async function clinicalSetup(admissionId: string, formData: FormData) {
       }
     });
 
+    invalidateDashboardTags("summary", "queue", "setup");
+    updateClinicalTags(getAdmissionMutationTags(admissionId));
     revalidatePath("/");
+    revalidatePath("/schedule");
   } catch (error) {
     return handleActionError(error);
   }
@@ -421,6 +441,8 @@ export async function updateCondition(admissionId: string, condition: string) {
       where: { id: admissionId },
       data: { condition: validateCondition(condition) },
     });
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getAdmissionMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     return { success: true };
@@ -466,8 +488,11 @@ export async function transferWard(admissionId: string, newWard: string, newCage
       });
     });
 
+    invalidateDashboardTags(...admissionDashboardInvalidations.transferWard);
+    updateClinicalTags(getAdmissionMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
+    revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -512,14 +537,17 @@ export async function updatePatient(patientId: string, formData: FormData) {
       },
     });
 
-    // Find admission for revalidation
-    const admission = await db.admission.findFirst({
+    const admissions = await db.admission.findMany({
       where: { patientId, deletedAt: null },
       select: { id: true },
     });
+    const admissionIds = admissions.map((admission) => admission.id);
 
+    invalidateDashboardTags("queue", "setup");
+    updateClinicalTags(getAdmissionMutationTagsForAdmissions(admissionIds));
     revalidatePath("/");
-    if (admission) revalidatePath("/patients/[admissionId]", "page");
+    revalidatePath("/schedule");
+    if (admissionIds.length > 0) revalidatePath("/patients/[admissionId]", "page");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -549,6 +577,8 @@ export async function updateAdmission(admissionId: string, formData: FormData) {
       data: { diagnosis, chiefComplaint, diagnosisNotes, attendingDoctor },
     });
 
+    invalidateDashboardTags("summary", "queue");
+    updateClinicalTags(getAdmissionMutationTags(admissionId));
     revalidatePath("/patients/[admissionId]", "page");
     revalidatePath("/");
     return { success: true };
@@ -566,6 +596,13 @@ export async function archivePatient(admissionId: string) {
       select: { id: true, patientId: true, deletedAt: true },
     });
     if (!admission || admission.deletedAt) return { error: "Admission not found" };
+
+    const admissionIds = (
+      await db.admission.findMany({
+        where: { patientId: admission.patientId, deletedAt: null },
+        select: { id: true },
+      })
+    ).map((entry) => entry.id);
 
     // Soft-delete admission and patient + deactivate plans atomically
     await db.$transaction(async (tx: any) => {
@@ -602,8 +639,11 @@ export async function archivePatient(admissionId: string) {
       });
     });
 
+    invalidateDashboardTags("summary", "queue", "setup");
+    updateClinicalTags(getAdmissionMutationTagsForAdmissions(admissionIds));
     revalidatePath("/");
     revalidatePath("/archive");
+    revalidatePath("/schedule");
   } catch (error) {
     return handleActionError(error);
   }
@@ -613,37 +653,47 @@ export async function archivePatient(admissionId: string) {
 export async function restorePatient(patientId: string) {
   try {
     const session = await requireDoctor();
+    let restoredAdmissionIds: string[] = [];
 
     await db.$transaction(async (tx: any) => {
       await tx.patient.update({
         where: { id: patientId },
         data: { deletedAt: null },
       });
+      // Clear cage assignment to prevent conflicts (cage may have been reassigned while archived)
       await tx.admission.updateMany({
         where: { patientId, deletedAt: { not: null } },
-        data: { deletedAt: null },
+        data: { deletedAt: null, cageNumber: null, ward: null },
       });
 
-      // Add a clinical note on each restored admission reminding doctor to re-prescribe
+      // Add a clinical note on each restored admission reminding doctor to re-prescribe and reassign cage
       const admissions = await tx.admission.findMany({
         where: { patientId, deletedAt: null },
         select: { id: true },
       });
+      restoredAdmissionIds = admissions.map(
+        (admission: { id: string }) => admission.id
+      );
       for (const adm of admissions) {
         await tx.clinicalNote.create({
           data: {
             admissionId: adm.id,
             category: "DOCTOR_ROUND",
             content:
-              "Patient restored from archive. All previous treatment plans, diet plans, and fluid therapies were deactivated during archiving. Doctor must review and re-prescribe as needed.",
+              "Patient restored from archive. Cage assignment was cleared (may have been reassigned). All previous treatment plans, diet plans, and fluid therapies were deactivated. Doctor must reassign ward/cage and re-prescribe as needed.",
             recordedById: session.staffId,
           },
         });
       }
     });
 
+    invalidateDashboardTags("summary", "queue", "setup");
+    updateClinicalTags(
+      getAdmissionMutationTagsForAdmissions(restoredAdmissionIds)
+    );
     revalidatePath("/");
     revalidatePath("/archive");
+    revalidatePath("/schedule");
     return { success: true };
   } catch (error) {
     return handleActionError(error);
@@ -866,7 +916,10 @@ export async function dischargePatient(admissionId: string, formData: FormData) 
       await tx.fluidTherapy.updateMany({ where: { admissionId, isActive: true }, data: { isActive: false } });
     });
 
+    invalidateDashboardTags(...admissionDashboardInvalidations.dischargePatient);
+    updateClinicalTags(getAdmissionMutationTags(admissionId));
     revalidatePath("/");
+    revalidatePath("/schedule");
   } catch (error) {
     return handleActionError(error);
   }

@@ -1,50 +1,17 @@
 import Link from "next/link";
 import { Thermometer, Heart, Pill, Bath, Clock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { LinkPendingIndicator } from "@/components/ui/link-pending-indicator";
 import { CONDITION_CONFIG, WARD_CONFIG } from "@/lib/constants";
 import {
   checkTemperature,
   checkHeartRate,
 } from "@/lib/vitals-thresholds";
-import { isBathDue, formatTimeIST } from "@/lib/date-utils";
+import { isBathDue } from "@/lib/date-utils";
+import type { DashboardQueueAdmission } from "@/lib/dashboard-queries";
 import { cn } from "@/lib/utils";
 
 interface PatientCardProps {
-  admission: {
-    id: string;
-    cageNumber: string | null;
-    condition: string | null;
-    ward: string | null;
-    diagnosis: string | null;
-    attendingDoctor: string | null;
-    admissionDate: Date;
-    patient: {
-      name: string;
-      breed: string | null;
-      age: string | null;
-      weight: number | null;
-    };
-    vitalRecords: Array<{
-      temperature: number | null;
-      heartRate: number | null;
-      recordedAt: Date;
-      weight: number | null;
-    }>;
-    treatmentPlans: Array<{
-      drugName: string;
-      administrations: Array<{
-        scheduledTime: string;
-        scheduledDate: Date;
-      }>;
-    }>;
-    bathLogs: Array<{
-      bathedAt: Date;
-    }>;
-    isolationProtocol: {
-      disease: string;
-      ppeRequired: string[];
-    } | null;
-  };
+  admission: DashboardQueueAdmission;
 }
 
 export function PatientCard({ admission }: PatientCardProps) {
@@ -54,16 +21,11 @@ export function PatientCard({ admission }: PatientCardProps) {
     : null;
   const wardConfig = admission.ward ? WARD_CONFIG[admission.ward] : null;
 
-  const latestVital = admission.vitalRecords[0] ?? null;
+  const latestVital = admission.latestVital;
   const tempFlag = checkTemperature(latestVital?.temperature);
   const hrFlag = checkHeartRate(latestVital?.heartRate);
 
-  // Bath due check — use last bath log if available, else admission date
-  const bathReference =
-    admission.bathLogs.length > 0
-      ? admission.bathLogs[0].bathedAt
-      : admission.admissionDate;
-  const bathStatus = isBathDue(bathReference);
+  const bathStatus = isBathDue(admission.bathReferenceDate);
 
   // Weight drop check
   const admissionWeight = admission.patient.weight;
@@ -74,21 +36,13 @@ export function PatientCard({ admission }: PatientCardProps) {
       : null;
   const hasWeightDrop = weightDropPercent != null && weightDropPercent > 5;
 
-  // Next pending med
-  const pendingMed = admission.treatmentPlans
-    .flatMap((plan) =>
-      plan.administrations.map((admin) => ({
-        drugName: plan.drugName,
-        scheduledTime: admin.scheduledTime,
-      }))
-    )
-    .sort((a, b) => a.scheduledTime.localeCompare(b.scheduledTime))[0] ?? null;
-
+  // Next med
   return (
     <Link
       href={`/patients/${admission.id}`}
+      prefetch={false}
       className={cn(
-        "block rounded-xl bg-card ring-1 ring-foreground/10 transition-shadow hover:shadow-md active:shadow-sm",
+        "patient-card-link block rounded-xl bg-card ring-1 ring-foreground/10 transition-shadow hover:shadow-md active:shadow-sm",
         isCritical && "border-l-4 border-clinic-red"
       )}
     >
@@ -110,7 +64,11 @@ export function PatientCard({ admission }: PatientCardProps) {
               )}
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+            <LinkPendingIndicator
+              loadingLabel={`${admission.patient.name} profile`}
+              className="patient-card-pending-indicator"
+            />
             {conditionConfig && (
               <span
                 className={cn(
@@ -194,13 +152,13 @@ export function PatientCard({ admission }: PatientCardProps) {
         </div>
 
         {/* Next med */}
-        {pendingMed && (
+        {admission.nextMedication && (
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
             <Pill className="h-3 w-3 shrink-0" />
-            <span className="truncate">{pendingMed.drugName}</span>
+            <span className="truncate">{admission.nextMedication.drugName}</span>
             <span className="shrink-0 font-medium text-foreground">
               <Clock className="mr-0.5 inline h-3 w-3" />
-              {pendingMed.scheduledTime}
+              {admission.nextMedication.scheduledTime}
             </span>
           </div>
         )}
