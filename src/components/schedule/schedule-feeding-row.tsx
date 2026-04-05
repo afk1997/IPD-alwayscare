@@ -76,6 +76,8 @@ export function ScheduleFeedingRow({
 }: ScheduleFeedingRowProps) {
   const [logOpen, setLogOpen] = useState(false);
   const [optimisticStatus, setOptimisticStatus] = useState<string | null>(null);
+  const [pressedRow, setPressedRow] = useState(false);
+  const [openPending, setOpenPending] = useState(false);
 
   const baseStatus = todayLog?.status ?? "PENDING";
   const displayStatus = optimisticStatus ?? baseStatus;
@@ -86,13 +88,40 @@ export function ScheduleFeedingRow({
     setOptimisticStatus(newStatus);
   }
 
+  function clearPressedRow() {
+    setTimeout(() => setPressedRow(false), 120);
+  }
+
+  function handleOpenLog() {
+    if (logOpen) return;
+    setOpenPending(true);
+    setLogOpen(true);
+  }
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setLogOpen(true)}
+        onClick={handleOpenLog}
+        data-pressed={pressedRow ? "true" : "false"}
+        data-pending={openPending ? "true" : "false"}
+        aria-busy={openPending || undefined}
+        onPointerDown={() => setPressedRow(true)}
+        onPointerUp={clearPressedRow}
+        onPointerCancel={clearPressedRow}
+        onPointerLeave={clearPressedRow}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            setPressedRow(true);
+          }
+        }}
+        onKeyUp={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            clearPressedRow();
+          }
+        }}
         className={cn(
-          "flex w-full items-start gap-3 rounded-lg border px-3 py-3 mb-2 text-left transition-colors active:opacity-80",
+          "schedule-action-button flex w-full items-start gap-3 rounded-lg border px-3 py-3 mb-2 text-left transition-colors active:opacity-80",
           displayConfig.row
         )}
       >
@@ -132,14 +161,29 @@ export function ScheduleFeedingRow({
         </div>
 
         {/* Status label */}
-        <span className={cn("flex-shrink-0 text-xs font-medium self-center", displayConfig.text)}>
-          {displayConfig.label}
-        </span>
+        <div className="flex flex-shrink-0 items-center gap-1.5 self-center">
+          <span
+            className="schedule-action-indicator"
+            data-pending={openPending ? "true" : "false"}
+            aria-hidden="true"
+          />
+          <span className={cn("text-xs font-medium", displayConfig.text)}>
+            {displayConfig.label}
+          </span>
+        </div>
+        {openPending && (
+          <span className="sr-only">
+            Opening feeding log for {patientName}
+          </span>
+        )}
       </button>
 
       <FeedingLogSheet
         open={logOpen}
-        onOpenChange={setLogOpen}
+        onOpenChange={(nextOpen) => {
+          setLogOpen(nextOpen);
+          setOpenPending(false);
+        }}
         feedingScheduleId={feedingScheduleId}
         feedingLogId={todayLog?.id}
         scheduledTime={scheduledTime}

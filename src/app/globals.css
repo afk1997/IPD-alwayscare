@@ -177,6 +177,64 @@
     border-top-color: rgb(13 148 136);
     animation: patient-tab-spinner 700ms linear infinite;
   }
+
+  .tap-pending-indicator,
+  .bottom-nav-pending-indicator,
+  .patient-card-pending-indicator,
+  .schedule-action-indicator {
+    position: relative;
+    width: 0.75rem;
+    height: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .tap-pending-indicator::before,
+  .bottom-nav-pending-indicator::before,
+  .patient-card-pending-indicator::before,
+  .schedule-action-indicator::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  .tap-pending-indicator[data-pending="true"]::before,
+  .bottom-nav-pending-indicator[data-pending="true"]::before,
+  .patient-card-pending-indicator[data-pending="true"]::before,
+  .schedule-action-indicator[data-pending="true"]::before {
+    opacity: 1;
+    border-color: rgb(13 148 136 / 0.3);
+    border-top-color: rgb(13 148 136);
+    animation: patient-tab-spinner 700ms linear infinite;
+  }
+
+  .bottom-nav-link,
+  .patient-card-link,
+  .schedule-action-button {
+    -webkit-tap-highlight-color: rgb(13 148 136 / 0.16);
+    touch-action: manipulation;
+  }
+
+  .bottom-nav-link[data-pressed="true"] {
+    background-color: rgb(240 253 249);
+  }
+
+  .patient-card-link:active {
+    background-color: rgb(248 250 252);
+  }
+
+  .schedule-action-button[data-pressed="true"] {
+    transform: scale(0.98);
+  }
+
+  .bottom-nav-link[data-pending="true"],
+  .patient-card-link:has(.patient-card-pending-indicator[data-pending="true"]),
+  .schedule-action-button[data-pending="true"] {
+    cursor: progress;
+  }
 }
 
 @keyframes patient-tab-spinner {
@@ -186,11 +244,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .patient-tab-pending-indicator::before {
+  .patient-tab-pending-indicator::before,
+  .tap-pending-indicator::before,
+  .bottom-nav-pending-indicator::before,
+  .patient-card-pending-indicator::before,
+  .schedule-action-indicator::before {
     transition: none;
   }
 
-  .patient-tab-pending-indicator[data-pending="true"]::before {
+  .patient-tab-pending-indicator[data-pending="true"]::before,
+  .tap-pending-indicator[data-pending="true"]::before,
+  .bottom-nav-pending-indicator[data-pending="true"]::before,
+  .patient-card-pending-indicator[data-pending="true"]::before,
+  .schedule-action-indicator[data-pending="true"]::before {
     animation: none;
   }
 }

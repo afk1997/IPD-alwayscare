@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Thermometer, Heart, Pill, Bath, Clock } from "lucide-react";
+import { LinkPendingIndicator } from "@/components/ui/link-pending-indicator";
 import { CONDITION_CONFIG, WARD_CONFIG } from "@/lib/constants";
 import {
   checkTemperature,
@@ -39,8 +40,9 @@ export function PatientCard({ admission }: PatientCardProps) {
   return (
     <Link
       href={`/patients/${admission.id}`}
+      prefetch={false}
       className={cn(
-        "block rounded-xl bg-card ring-1 ring-foreground/10 transition-shadow hover:shadow-md active:shadow-sm",
+        "patient-card-link block rounded-xl bg-card ring-1 ring-foreground/10 transition-shadow hover:shadow-md active:shadow-sm",
         isCritical && "border-l-4 border-clinic-red"
       )}
     >
@@ -62,7 +64,11 @@ export function PatientCard({ admission }: PatientCardProps) {
               )}
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
+            <LinkPendingIndicator
+              loadingLabel={`${admission.patient.name} profile`}
+              className="patient-card-pending-indicator"
+            />
             {conditionConfig && (
               <span
                 className={cn(

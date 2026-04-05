@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Calendar, AlertTriangle, Archive, User } from "lucide-react";
@@ -15,6 +16,21 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const [pressedHref, setPressedHref] = useState<string | null>(null);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  function setPendingWithTimeout(href: string) {
+    setPendingHref(href);
+    setTimeout(() => {
+      setPendingHref((current) => (current === href ? null : current));
+    }, 8000);
+  }
+
+  function clearPressedHref(href: string) {
+    setTimeout(() => {
+      setPressedHref((current) => (current === href ? null : current));
+    }, 120);
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 h-16 border-t border-border bg-white pb-safe">
@@ -22,19 +38,54 @@ export function BottomNav() {
         {tabs.map(({ href, label, icon: Icon }) => {
           const isActive =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const isPending = pendingHref === href && !isActive;
+          const isPressed = pressedHref === href;
           return (
             <Link
               key={href}
               href={href}
+              aria-busy={isPending || undefined}
+              aria-current={isActive ? "page" : undefined}
+              data-pending={isPending ? "true" : "false"}
+              data-pressed={isPressed ? "true" : "false"}
+              onPointerDown={() => setPressedHref(href)}
+              onPointerUp={() => clearPressedHref(href)}
+              onPointerCancel={() => clearPressedHref(href)}
+              onPointerLeave={() => clearPressedHref(href)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  setPressedHref(href);
+                }
+              }}
+              onKeyUp={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  clearPressedHref(href);
+                }
+              }}
+              onClick={(event) => {
+                if (isActive || pendingHref === href) {
+                  event.preventDefault();
+                  return;
+                }
+                setPendingWithTimeout(href);
+              }}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors",
+                "bottom-nav-link flex flex-1 flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors",
                 isActive ? "text-clinic-teal" : "text-gray-400"
               )}
             >
               <Icon
                 className={cn("size-5", isActive ? "text-clinic-teal" : "text-gray-400")}
               />
-              <span>{label}</span>
+              <span className="inline-flex items-center gap-1">
+                <span>{label}</span>
+                <span
+                  className="bottom-nav-pending-indicator"
+                  data-pending={isPending ? "true" : "false"}
+                  aria-hidden="true"
+                />
+              </span>
+              {isPending && <span className="sr-only">Loading {label}</span>}
             </Link>
           );
         })}
