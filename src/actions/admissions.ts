@@ -660,12 +660,13 @@ export async function restorePatient(patientId: string) {
         where: { id: patientId },
         data: { deletedAt: null },
       });
+      // Clear cage assignment to prevent conflicts (cage may have been reassigned while archived)
       await tx.admission.updateMany({
         where: { patientId, deletedAt: { not: null } },
-        data: { deletedAt: null },
+        data: { deletedAt: null, cageNumber: null, ward: null },
       });
 
-      // Add a clinical note on each restored admission reminding doctor to re-prescribe
+      // Add a clinical note on each restored admission reminding doctor to re-prescribe and reassign cage
       const admissions = await tx.admission.findMany({
         where: { patientId, deletedAt: null },
         select: { id: true },
@@ -679,7 +680,7 @@ export async function restorePatient(patientId: string) {
             admissionId: adm.id,
             category: "DOCTOR_ROUND",
             content:
-              "Patient restored from archive. All previous treatment plans, diet plans, and fluid therapies were deactivated during archiving. Doctor must review and re-prescribe as needed.",
+              "Patient restored from archive. Cage assignment was cleared (may have been reassigned). All previous treatment plans, diet plans, and fluid therapies were deactivated. Doctor must reassign ward/cage and re-prescribe as needed.",
             recordedById: session.staffId,
           },
         });
