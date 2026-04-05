@@ -2,6 +2,12 @@
 
 import { useState } from "react";
 import { ProofLightbox } from "./proof-lightbox";
+import { driveMediaUrl } from "@/lib/drive-url";
+import { Play } from "lucide-react";
+
+function isVideo(fileName: string): boolean {
+  return /\.(mp4|mov|webm|avi|mkv)$/i.test(fileName);
+}
 
 interface MediaItem {
   fileId: string;
@@ -68,13 +74,29 @@ export function MediaGallery({ patientPhotos, proofAttachments, patientName }: M
             onClick={() => setLightboxIndex(i)}
             className="relative aspect-square rounded-lg overflow-hidden bg-muted"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/api/media?id=${item.fileId}`}
-              alt={item.fileName}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
+            {isVideo(item.fileName) ? (
+              <>
+                <video
+                  src={driveMediaUrl(item.fileId)}
+                  className="w-full h-full object-cover"
+                  muted
+                  preload="metadata"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center">
+                    <Play className="w-4 h-4 text-white fill-white" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={driveMediaUrl(item.fileId)}
+                alt={item.fileName}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            )}
             <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-black/60 text-white px-1 py-0.5 rounded">
               {item.category.split(" ")[0]}
             </span>
@@ -102,6 +124,7 @@ export function MediaGallery({ patientPhotos, proofAttachments, patientName }: M
         <ProofLightbox
           items={filtered.map((item) => ({
             fileId: item.fileId,
+            fileName: item.fileName,
             patientName,
             actionType: item.category,
             actionDetail: item.fileName,

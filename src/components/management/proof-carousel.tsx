@@ -4,7 +4,12 @@ import { useRef, useState } from "react";
 import type { ProofCarouselItem } from "@/lib/management-dashboard-queries";
 import { ProofLightbox } from "./proof-lightbox";
 import { formatInTimeZone } from "date-fns-tz";
-import { Camera } from "lucide-react";
+import { Camera, Play } from "lucide-react";
+import { driveMediaUrl } from "@/lib/drive-url";
+
+function isVideo(fileName: string): boolean {
+  return /\.(mp4|mov|webm|avi|mkv)$/i.test(fileName);
+}
 
 interface ProofCarouselProps {
   items: ProofCarouselItem[];
@@ -51,10 +56,19 @@ export function ProofCarousel({ items }: ProofCarouselProps) {
               <div className="h-24 bg-muted flex items-center justify-center text-xs text-muted-foreground px-2 text-center">
                 Skipped
               </div>
+            ) : isVideo(item.fileName) ? (
+              <div className="relative h-24">
+                <video src={driveMediaUrl(item.fileId)} className="h-24 w-full object-cover" muted preload="metadata" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center">
+                    <Play className="w-3 h-3 text-white fill-white" />
+                  </div>
+                </div>
+              </div>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`/api/media?id=${item.fileId}`}
+                src={driveMediaUrl(item.fileId)}
                 alt={`${item.actionType} proof`}
                 className="h-24 w-full object-cover"
                 loading="lazy"

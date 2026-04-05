@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { ProofLightbox } from "./proof-lightbox";
+import { driveMediaUrl } from "@/lib/drive-url";
 import { formatInTimeZone } from "date-fns-tz";
+import { Play } from "lucide-react";
+
+function isVideo(fileName: string): boolean {
+  return /\.(mp4|mov|webm|avi|mkv)$/i.test(fileName);
+}
 import { checkTemperature, checkHeartRate, checkRespRate, checkPainScore } from "@/lib/vitals-thresholds";
 import { isBathDue } from "@/lib/date-utils";
 
@@ -108,8 +114,15 @@ export function TodayTab(props: TodayTabProps) {
                   {slot.proof.isSkipped ? (
                     <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-[9px] text-muted-foreground">Skip</div>
                   ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`/api/media?id=${slot.proof.fileId}`} alt="proof" className="w-12 h-12 rounded object-cover" loading="lazy" />
+                    isVideo(slot.proof.fileName) ? (
+                      <div className="relative w-12 h-12">
+                        <video src={driveMediaUrl(slot.proof.fileId)} className="w-12 h-12 rounded object-cover" muted preload="metadata" />
+                        <Play className="absolute inset-0 m-auto w-4 h-4 text-white drop-shadow" />
+                      </div>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={driveMediaUrl(slot.proof.fileId)} alt="proof" className="w-12 h-12 rounded object-cover" loading="lazy" />
+                    )
                   )}
                 </button>
               )}
@@ -142,8 +155,15 @@ export function TodayTab(props: TodayTabProps) {
               </div>
               {slot.proof && (
                 <button onClick={() => openProof(slot.proof!)} className="shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={`/api/media?id=${slot.proof.fileId}`} alt="proof" className="w-12 h-12 rounded object-cover" loading="lazy" />
+                  {isVideo(slot.proof.fileName) ? (
+                    <div className="relative w-12 h-12">
+                      <video src={driveMediaUrl(slot.proof.fileId)} className="w-12 h-12 rounded object-cover" muted preload="metadata" />
+                      <Play className="absolute inset-0 m-auto w-4 h-4 text-white drop-shadow" />
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={driveMediaUrl(slot.proof.fileId)} alt="proof" className="w-12 h-12 rounded object-cover" loading="lazy" />
+                  )}
                 </button>
               )}
             </div>

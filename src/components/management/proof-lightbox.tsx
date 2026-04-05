@@ -4,8 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatInTimeZone } from "date-fns-tz";
 
+function isVideo(fileName: string): boolean {
+  return /\.(mp4|mov|webm|avi|mkv)$/i.test(fileName);
+}
+
 interface LightboxItem {
   fileId: string;
+  fileName?: string;
   patientName: string;
   actionType: string;
   actionDetail: string;
@@ -68,6 +73,13 @@ export function ProofLightbox({ items, initialIndex, onClose }: ProofLightboxPro
             <p className="text-lg">Proof Skipped</p>
             <p className="text-white/70 mt-2">{item.skipReason ?? "No reason provided"}</p>
           </div>
+        ) : isVideo(item.fileName ?? item.actionDetail) ? (
+          <video
+            src={`/api/media?id=${item.fileId}`}
+            controls
+            autoPlay
+            className="max-h-[80vh] max-w-full rounded-lg"
+          />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
           <img
