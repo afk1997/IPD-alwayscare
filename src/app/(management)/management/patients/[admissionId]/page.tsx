@@ -9,6 +9,10 @@ import { getPatientNotesData, getPatientLabsData, getPatientPhotosData } from "@
 import { getLogsTimelineEntries } from "@/lib/logs-queries";
 import { normalizeManagementPatientTab, getManagementPatientTabLoadPlan } from "@/lib/management-patient-page-data";
 import { getTodayUTCDate, formatIST, getNowTimeIST } from "@/lib/date-utils";
+import {
+  HANDLING_NOTE_LABELS,
+  SPAY_NEUTER_STATUS_LABELS,
+} from "@/lib/constants";
 import { TodayTab } from "@/components/management/today-tab";
 import type { TodayTabProps } from "@/components/management/today-tab";
 import { HistoryTab } from "@/components/management/history-tab";
@@ -152,6 +156,9 @@ export default async function ManagementPatientPage({ params, searchParams }: Pr
         <Link href="/management" className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
           <ArrowLeft className="w-3.5 h-3.5" /> Back
         </Link>
+        <p className="text-xs font-medium uppercase tracking-wide text-clinic-teal">
+          {shell.patient.patientNumber ?? "Number pending"}
+        </p>
         <h1 className="text-lg font-bold">{shell.patient.name}</h1>
         <div className="flex items-center gap-2 flex-wrap">
           {shell.condition && (
@@ -165,6 +172,27 @@ export default async function ManagementPatientPage({ params, searchParams }: Pr
             </span>
           )}
           <span className="text-[10px] text-muted-foreground">Day {dayNum}</span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-medium">
+            {HANDLING_NOTE_LABELS[shell.patient.handlingNote] ?? "Standard"}
+          </span>
+          {shell.viralRisk !== null && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">
+              Viral risk: {shell.viralRisk ? "Yes" : "No"}
+            </span>
+          )}
+          {shell.spayNeuterStatus && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">
+              {SPAY_NEUTER_STATUS_LABELS[shell.spayNeuterStatus] ??
+                shell.spayNeuterStatus}
+            </span>
+          )}
+          {shell.abcCandidate && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-medium">
+              ABC candidate
+            </span>
+          )}
         </div>
         <p className="text-sm text-muted-foreground">{shell.diagnosis}</p>
         <p className="text-xs text-muted-foreground">

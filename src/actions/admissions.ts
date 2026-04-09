@@ -8,7 +8,9 @@ import { db } from "@/lib/db";
 import { requireDoctor, requireWriteAccess } from "@/lib/auth";
 import {
   formatPatientNumber,
+  parseViralRisk,
   validateHandlingNote,
+  validateSpayNeuterStatus,
 } from "@/lib/intake-fields";
 import {
   validateSpecies,
@@ -262,6 +264,15 @@ export async function clinicalSetup(admissionId: string, formData: FormData) {
     const cageNumber = formData.get("cageNumber") as string;
     const condition = formData.get("condition") as string;
     const attendingDoctor = formData.get("attendingDoctor") as string;
+    const viralRiskValue = (formData.get("viralRisk") as string) || "";
+    if (!viralRiskValue) return { error: "Viral risk is required" };
+    const viralRisk = parseViralRisk(viralRiskValue);
+    const spayNeuterStatusValue =
+      (formData.get("spayNeuterStatus") as string) || "UNKNOWN";
+    const spayNeuterStatus = spayNeuterStatusValue
+      ? validateSpayNeuterStatus(spayNeuterStatusValue)
+      : null;
+    const abcCandidate = formData.get("abcCandidate") === "true";
 
     if (!diagnosis || !ward || !cageNumber || !condition || !attendingDoctor) {
       return { error: "All required fields must be filled" };
@@ -352,6 +363,9 @@ export async function clinicalSetup(admissionId: string, formData: FormData) {
           cageNumber,
           condition: validatedCondition,
           attendingDoctor,
+          viralRisk,
+          spayNeuterStatus,
+          abcCandidate,
         },
       });
 
@@ -628,10 +642,26 @@ export async function updateAdmission(admissionId: string, formData: FormData) {
     const chiefComplaint = (formData.get("chiefComplaint") as string) || null;
     const diagnosisNotes = (formData.get("diagnosisNotes") as string) || null;
     const attendingDoctor = (formData.get("attendingDoctor") as string) || null;
+    const viralRiskValue = (formData.get("viralRisk") as string) || "";
+    const viralRisk = viralRiskValue ? parseViralRisk(viralRiskValue) : null;
+    const spayNeuterStatusValue =
+      (formData.get("spayNeuterStatus") as string) || "";
+    const spayNeuterStatus = spayNeuterStatusValue
+      ? validateSpayNeuterStatus(spayNeuterStatusValue)
+      : null;
+    const abcCandidate = formData.get("abcCandidate") === "true";
 
     await db.admission.update({
       where: { id: admissionId },
-      data: { diagnosis, chiefComplaint, diagnosisNotes, attendingDoctor },
+      data: {
+        diagnosis,
+        chiefComplaint,
+        diagnosisNotes,
+        attendingDoctor,
+        viralRisk,
+        spayNeuterStatus,
+        abcCandidate,
+      },
     });
 
     invalidateDashboardTags("summary", "queue");

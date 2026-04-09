@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -23,7 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CONDITION_CONFIG, WARD_CONFIG } from "@/lib/constants";
+import { Switch } from "@/components/ui/switch";
+import {
+  CONDITION_CONFIG,
+  HANDLING_NOTE_LABELS,
+  SPAY_NEUTER_STATUS_LABELS,
+  WARD_CONFIG,
+} from "@/lib/constants";
 import { daysSince, formatIST } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { updatePatient, updateAdmission } from "@/actions/admissions";
@@ -39,8 +45,12 @@ interface PatientHeaderProps {
     chiefComplaint: string | null;
     diagnosisNotes: string | null;
     attendingDoctor: string | null;
+    viralRisk: boolean | null;
+    spayNeuterStatus: string | null;
+    abcCandidate: boolean;
     patient: {
       id: string;
+      patientNumber: string | null;
       name: string;
       breed: string | null;
       age: string | null;
@@ -50,6 +60,9 @@ interface PatientHeaderProps {
       color: string | null;
       isStray: boolean;
       rescueLocation: string | null;
+      locationGpsCoordinates: string | null;
+      ambulancePersonName: string | null;
+      handlingNote: string;
       rescuerInfo: string | null;
     };
   };
@@ -70,12 +83,23 @@ function EditPatientSheet({
 }) {
   const [loading, setLoading] = useState(false);
   const [sex, setSex] = useState(patient.sex);
+  const [isStray, setIsStray] = useState(patient.isStray);
+  const [handlingNote, setHandlingNote] = useState(patient.handlingNote);
+
+  useEffect(() => {
+    if (!open) return;
+    setSex(patient.sex);
+    setIsStray(patient.isStray);
+    setHandlingNote(patient.handlingNote);
+  }, [open, patient.handlingNote, patient.isStray, patient.sex]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const formData = new FormData(e.currentTarget);
     formData.set("sex", sex);
+    formData.set("isStray", String(isStray));
+    formData.set("handlingNote", handlingNote);
     try {
       const result = await updatePatient(patient.id, formData);
       if (result && "error" in result && result.error) {
@@ -98,6 +122,8 @@ function EditPatientSheet({
           <SheetTitle>Edit Patient</SheetTitle>
         </SheetHeader>
         <form onSubmit={handleSubmit} className="px-4 pb-6 space-y-4">
+          <input type="hidden" name="isStray" value={String(isStray)} />
+          <input type="hidden" name="handlingNote" value={handlingNote} />
           <div className="space-y-1.5">
             <Label htmlFor="ep-name">Name *</Label>
             <Input id="ep-name" name="name" defaultValue={patient.name} required className="h-12" />
@@ -135,15 +161,59 @@ function EditPatientSheet({
             <Label htmlFor="ep-color">Color</Label>
             <Input id="ep-color" name="color" defaultValue={patient.color ?? ""} className="h-12" />
           </div>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" name="isStray" defaultChecked={patient.isStray} className="h-4 w-4 rounded border-gray-300" />
-              <span className="text-sm">Stray animal</span>
-            </label>
+          <div className="space-y-1.5">
+            <Label htmlFor="ep-ambulance">Ambulance Person Name</Label>
+            <Input
+              id="ep-ambulance"
+              name="ambulancePersonName"
+              defaultValue={patient.ambulancePersonName ?? ""}
+              className="h-12"
+            />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="ep-rescue">Rescue Location</Label>
-            <Input id="ep-rescue" name="rescueLocation" defaultValue={patient.rescueLocation ?? ""} className="h-12" />
+            <Label htmlFor="ep-rescue">Location Name</Label>
+            <Input
+              id="ep-rescue"
+              name="rescueLocation"
+              defaultValue={patient.rescueLocation ?? ""}
+              className="h-12"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ep-gps">GPS Coordinates</Label>
+            <Input
+              id="ep-gps"
+              name="locationGpsCoordinates"
+              defaultValue={patient.locationGpsCoordinates ?? ""}
+              className="h-12"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Handling Note</Label>
+            <Select
+              value={handlingNote}
+              onValueChange={(value) => setHandlingNote(value ?? "STANDARD")}
+            >
+              <SelectTrigger className="w-full h-12">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(HANDLING_NOTE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Stray animal</Label>
+              <p className="text-xs text-muted-foreground">
+                Toggle when the patient arrived without a caretaker.
+              </p>
+            </div>
+            <Switch checked={isStray} onCheckedChange={setIsStray} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ep-rescuer">Rescuer Info</Label>
@@ -171,6 +241,27 @@ function EditAdmissionSheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const [loading, setLoading] = useState(false);
+  const [viralRisk, setViralRisk] = useState(
+    admission.viralRisk === null ? "" : admission.viralRisk ? "YES" : "NO"
+  );
+  const [spayNeuterStatus, setSpayNeuterStatus] = useState(
+    admission.spayNeuterStatus ?? "UNKNOWN"
+  );
+  const [abcCandidate, setAbcCandidate] = useState(admission.abcCandidate);
+
+  useEffect(() => {
+    if (!open) return;
+    setViralRisk(
+      admission.viralRisk === null ? "" : admission.viralRisk ? "YES" : "NO"
+    );
+    setSpayNeuterStatus(admission.spayNeuterStatus ?? "UNKNOWN");
+    setAbcCandidate(admission.abcCandidate);
+  }, [
+    admission.abcCandidate,
+    admission.spayNeuterStatus,
+    admission.viralRisk,
+    open,
+  ]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -198,6 +289,17 @@ function EditAdmissionSheet({
           <SheetTitle>Edit Admission</SheetTitle>
         </SheetHeader>
         <form onSubmit={handleSubmit} className="px-4 pb-6 space-y-4">
+          <input type="hidden" name="viralRisk" value={viralRisk} />
+          <input
+            type="hidden"
+            name="spayNeuterStatus"
+            value={spayNeuterStatus}
+          />
+          <input
+            type="hidden"
+            name="abcCandidate"
+            value={String(abcCandidate)}
+          />
           <div className="space-y-1.5">
             <Label htmlFor="ea-diagnosis">Diagnosis</Label>
             <Input id="ea-diagnosis" name="diagnosis" defaultValue={admission.diagnosis ?? ""} className="h-12" />
@@ -213,6 +315,51 @@ function EditAdmissionSheet({
           <div className="space-y-1.5">
             <Label htmlFor="ea-doctor">Attending Doctor</Label>
             <Input id="ea-doctor" name="attendingDoctor" defaultValue={admission.attendingDoctor ?? ""} className="h-12" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Viral Risk</Label>
+              <Select value={viralRisk} onValueChange={(value) => setViralRisk(value ?? "")}>
+                <SelectTrigger className="w-full h-12">
+                  <SelectValue placeholder="Not set" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="YES">Yes</SelectItem>
+                  <SelectItem value="NO">No</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Spay / Neuter Status</Label>
+              <Select
+                value={spayNeuterStatus}
+                onValueChange={(value) =>
+                  setSpayNeuterStatus(value ?? "UNKNOWN")
+                }
+              >
+                <SelectTrigger className="w-full h-12">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SPAY_NEUTER_STATUS_LABELS).map(
+                    ([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">ABC Candidate</Label>
+              <p className="text-xs text-muted-foreground">
+                Keep this visible for the ABC workflow when needed.
+              </p>
+            </div>
+            <Switch checked={abcCandidate} onCheckedChange={setAbcCandidate} />
           </div>
           <div className="flex gap-2 pt-2">
             <Button type="button" variant="outline" className="flex-1" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
@@ -236,6 +383,12 @@ export function PatientHeader({ admission, isDoctor, profilePhotoFileId }: Patie
 
   const sexLabel =
     patient.sex === "MALE" ? "M" : patient.sex === "FEMALE" ? "F" : "?";
+  const handlingNoteLabel =
+    HANDLING_NOTE_LABELS[patient.handlingNote] ?? "Standard";
+  const spayNeuterLabel = admission.spayNeuterStatus
+    ? SPAY_NEUTER_STATUS_LABELS[admission.spayNeuterStatus] ??
+      admission.spayNeuterStatus
+    : null;
 
   return (
     <div className="bg-white border-b border-gray-200 px-4 py-3">
@@ -287,6 +440,9 @@ export function PatientHeader({ admission, isDoctor, profilePhotoFileId }: Patie
 
         {/* Info */}
         <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-clinic-teal">
+            {patient.patientNumber ?? "Number pending"}
+          </p>
           {/* Name + breed/age/sex */}
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <span className="text-base font-bold text-gray-900 leading-tight">
@@ -333,6 +489,33 @@ export function PatientHeader({ admission, isDoctor, profilePhotoFileId }: Patie
                 {wardCfg.label}
               </Badge>
             )}
+            <Badge
+              className="text-xs font-medium border border-sky-200 bg-sky-50 text-sky-700"
+              variant="outline"
+            >
+              {handlingNoteLabel}
+            </Badge>
+            {admission.viralRisk !== null && (
+              <Badge
+                className={cn(
+                  "text-xs font-medium border",
+                  admission.viralRisk
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                )}
+                variant="outline"
+              >
+                Viral risk: {admission.viralRisk ? "Yes" : "No"}
+              </Badge>
+            )}
+            {admission.abcCandidate && (
+              <Badge
+                className="text-xs font-medium border border-violet-200 bg-violet-50 text-violet-700"
+                variant="outline"
+              >
+                ABC candidate
+              </Badge>
+            )}
             {admission.cageNumber && (
               <span className="text-xs text-gray-500 font-medium">
                 Cage {admission.cageNumber}
@@ -345,6 +528,20 @@ export function PatientHeader({ admission, isDoctor, profilePhotoFileId }: Patie
             <p className="text-sm text-gray-700 mt-1 font-medium">
               {admission.diagnosis}
             </p>
+          )}
+
+          {(spayNeuterLabel ||
+            patient.ambulancePersonName ||
+            patient.rescueLocation) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-500">
+              {spayNeuterLabel && <span>Spay / neuter: {spayNeuterLabel}</span>}
+              {patient.ambulancePersonName && (
+                <span>Ambulance: {patient.ambulancePersonName}</span>
+              )}
+              {patient.rescueLocation && (
+                <span>Location: {patient.rescueLocation}</span>
+              )}
+            </div>
           )}
 
           {/* Bottom row: day count + doctor + admission date */}

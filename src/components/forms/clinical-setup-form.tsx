@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IsolationSetupForm } from "@/components/forms/isolation-setup-form";
 import { clinicalSetup } from "@/actions/admissions";
@@ -22,6 +22,7 @@ import {
   FREQUENCY_DEFAULT_TIMES,
   ROUTE_LABELS,
   COMMON_DRUGS,
+  SPAY_NEUTER_STATUS_LABELS,
 } from "@/lib/constants";
 
 interface Medication {
@@ -65,7 +66,6 @@ export function ClinicalSetupForm({
   availableCages,
   activeDoctors,
 }: ClinicalSetupFormProps) {
-  const router = useRouter();
   const [isPending, setIsPending] = useState(false);
 
   // Core fields
@@ -76,6 +76,9 @@ export function ClinicalSetupForm({
   const [cageNumber, setCageNumber] = useState("");
   const [condition, setCondition] = useState("");
   const [attendingDoctor, setAttendingDoctor] = useState("");
+  const [viralRisk, setViralRisk] = useState("");
+  const [spayNeuterStatus, setSpayNeuterStatus] = useState("UNKNOWN");
+  const [abcCandidate, setAbcCandidate] = useState(false);
 
   // Treatment toggle
   const [showTreatment, setShowTreatment] = useState(false);
@@ -173,6 +176,11 @@ export function ClinicalSetupForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
+    if (!viralRisk) {
+      toast.error("Please select viral risk");
+      return;
+    }
+
     if (!diagnosis || !ward || !cageNumber || !condition || !attendingDoctor) {
       toast.error("Please fill in all required fields");
       return;
@@ -248,6 +256,17 @@ export function ClinicalSetupForm({
           <input type="hidden" name="cageNumber" value={cageNumber} />
           <input type="hidden" name="condition" value={condition} />
           <input type="hidden" name="attendingDoctor" value={attendingDoctor} />
+          <input type="hidden" name="viralRisk" value={viralRisk} />
+          <input
+            type="hidden"
+            name="spayNeuterStatus"
+            value={spayNeuterStatus}
+          />
+          <input
+            type="hidden"
+            name="abcCandidate"
+            value={String(abcCandidate)}
+          />
           {ward === "ISOLATION" && (
             <>
               <input type="hidden" name="disease" value={disease} />
@@ -386,6 +405,62 @@ export function ClinicalSetupForm({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>
+                Viral Risk <span className="text-red-500">*</span>
+              </Label>
+              <Select
+                value={viralRisk}
+                onValueChange={(value) => setViralRisk(value ?? "")}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Select viral risk" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="YES">Yes</SelectItem>
+                  <SelectItem value="NO">No</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Please select viral risk
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Spay / Neuter Status</Label>
+              <Select
+                value={spayNeuterStatus}
+                onValueChange={(value) =>
+                  setSpayNeuterStatus(value ?? "UNKNOWN")
+                }
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(SPAY_NEUTER_STATUS_LABELS).map(
+                    ([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-3">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">ABC Candidate</Label>
+              <p className="text-xs text-muted-foreground">
+                Mark if the patient should stay visible for the ABC workflow.
+              </p>
+            </div>
+            <Switch checked={abcCandidate} onCheckedChange={setAbcCandidate} />
           </div>
         </CardContent>
       </Card>

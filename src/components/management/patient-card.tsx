@@ -23,7 +23,14 @@ export function PatientCard({ patient }: { patient: PatientCardData }) {
         <span className={`mt-1 w-2.5 h-2.5 rounded-full shrink-0 ${CONDITION_STYLES[patient.condition ?? ""] ?? "bg-gray-400"}`} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm truncate">{patient.patientName}</h3>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {patient.patientNumber ?? "Number pending"}
+              </p>
+              <h3 className="font-semibold text-sm truncate">
+                {patient.patientName}
+              </h3>
+            </div>
             <span className="text-[10px] text-muted-foreground shrink-0">Day {dayNum}</span>
           </div>
           <p className="text-xs text-muted-foreground truncate">{patient.diagnosis}</p>

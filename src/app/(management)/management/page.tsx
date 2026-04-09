@@ -92,7 +92,10 @@ export default async function ManagementDashboardPage({ searchParams }: Manageme
             <div className="border-t px-3 pb-3 space-y-2 pt-2">
               {data.registeredPatients.map((p) => (
                 <div key={p.admissionId} className="text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">{p.patientName}</span> · {p.species} · by {p.admittedBy}
+                  <span className="font-medium text-foreground">
+                    {p.patientNumber ?? "Number pending"}
+                  </span>{" "}
+                  · {p.patientName} · {p.species} · by {p.admittedBy}
                 </div>
               ))}
             </div>

@@ -31,6 +31,7 @@ export interface OverdueItem {
 export interface PatientCardData {
   admissionId: string;
   patientId: string;
+  patientNumber: string | null;
   patientName: string;
   species: string;
   diagnosis: string | null;
@@ -55,23 +56,37 @@ export interface ManagementDashboardData {
   proofCarousel: ProofCarouselItem[];
   overdueItems: OverdueItem[];
   patientCards: PatientCardData[];
-  registeredPatients: { admissionId: string; patientName: string; species: string; admittedBy: string }[];
+  registeredPatients: {
+    admissionId: string;
+    patientNumber: string | null;
+    patientName: string;
+    species: string;
+    admittedBy: string;
+  }[];
 }
 
 export async function getManagementDashboardData(wardFilter?: string): Promise<ManagementDashboardData> {
   const today = getTodayUTCDate();
   const nowTime = getNowTimeIST();
   const nowMinutes = toMinutes(nowTime);
+  const ward =
+    wardFilter === "GENERAL" ||
+    wardFilter === "ISOLATION" ||
+    wardFilter === "ICU"
+      ? wardFilter
+      : undefined;
 
   const admissions = await db.admission.findMany({
     where: {
       status: { in: ["ACTIVE", "REGISTERED"] },
       deletedAt: null,
       patient: { deletedAt: null },
-      ...(wardFilter && wardFilter !== "ALL" ? { ward: wardFilter as any } : {}),
+      ...(ward ? { ward } : {}),
     },
     include: {
-      patient: { select: { id: true, name: true, species: true } },
+      patient: {
+        select: { id: true, patientNumber: true, name: true, species: true },
+      },
       admittedBy: { select: { name: true } },
       vitalRecords: { orderBy: { recordedAt: "desc" }, take: 1 },
       treatmentPlans: {
@@ -169,6 +184,7 @@ export async function getManagementDashboardData(wardFilter?: string): Promise<M
     return {
       admissionId: a.id,
       patientId: a.patient.id,
+      patientNumber: a.patient.patientNumber,
       patientName: a.patient.name,
       species: a.patient.species,
       diagnosis: a.diagnosis,
@@ -223,6 +239,7 @@ export async function getManagementDashboardData(wardFilter?: string): Promise<M
     patientCards,
     registeredPatients: registered.map((a) => ({
       admissionId: a.id,
+      patientNumber: a.patient.patientNumber,
       patientName: a.patient.name,
       species: a.patient.species,
       admittedBy: a.admittedBy.name,

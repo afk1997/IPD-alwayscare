@@ -15,6 +15,9 @@ export async function getManagementPatientPageShell(admissionId: string) {
       diagnosis: true,
       chiefComplaint: true,
       attendingDoctor: true,
+      viralRisk: true,
+      spayNeuterStatus: true,
+      abcCandidate: true,
       status: true,
       admittedBy: {
         select: { name: true },
@@ -22,9 +25,11 @@ export async function getManagementPatientPageShell(admissionId: string) {
       patient: {
         select: {
           id: true,
+          patientNumber: true,
           name: true,
           species: true,
           breed: true,
+          handlingNote: true,
           deletedAt: true,
         },
       },
