@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireDoctor, requireWriteAccess } from "@/lib/auth";
+import { formatPatientNumber } from "@/lib/intake-fields";
 import {
   validateSpecies,
   validateSex,
@@ -25,6 +26,17 @@ import {
   admissionDashboardInvalidations,
   invalidateDashboardTags,
 } from "@/lib/dashboard-revalidation";
+
+async function reservePatientNumber(tx: any) {
+  const counter = await tx.clinicCounter.upsert({
+    where: { key: "patientNumber" },
+    update: { value: { increment: 1 } },
+    create: { key: "patientNumber", value: 1 },
+    select: { value: true },
+  });
+
+  return formatPatientNumber(counter.value);
+}
 
 export async function registerPatient(_prevState: unknown, formData: FormData) {
   try {

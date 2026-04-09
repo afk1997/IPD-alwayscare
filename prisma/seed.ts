@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
+import { formatPatientNumber } from "../src/lib/intake-fields";
 
 const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
@@ -21,6 +22,26 @@ function todayAt(hhmm: string): Date {
 // Date-only (no time) for scheduledDate fields typed as @db.Date
 function dateOnly(d: Date): Date {
   return new Date(d.toISOString().split("T")[0] + "T00:00:00.000Z");
+}
+
+async function syncSeedPatientNumbers(prismaClient: PrismaClient) {
+  const patients = await prismaClient.patient.findMany({
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: { id: true },
+  });
+
+  for (const [index, patient] of patients.entries()) {
+    await prismaClient.patient.update({
+      where: { id: patient.id },
+      data: { patientNumber: formatPatientNumber(index + 1) },
+    });
+  }
+
+  await prismaClient.clinicCounter.upsert({
+    where: { key: "patientNumber" },
+    update: { value: patients.length },
+    create: { key: "patientNumber", value: patients.length },
+  });
 }
 
 async function main() {
@@ -781,6 +802,8 @@ async function main() {
   console.log("  - Lali   : ACTIVE / GENERAL G-05 / IMPROVING — Dehydration + Malnutrition");
   console.log("  - Golu   : ACTIVE / ISOLATION ISO-01 / GUARDED — Canine Distemper (CDV)");
   console.log("  - Pappu  : REGISTERED (pending clinical setup)");
+
+  await syncSeedPatientNumbers(prisma);
 }
 
 main()

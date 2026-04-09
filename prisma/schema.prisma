@@ -113,6 +113,18 @@ enum StaffRole {
   MANAGEMENT
 }
 
+enum HandlingNote {
+  STANDARD
+  GENTLE
+  ADVANCED_HANDLER_ONLY
+}
+
+enum SpayNeuterStatus {
+  UNKNOWN
+  INTACT
+  SPAYED_NEUTERED
+}
+
 // ─── Models ────────────────────────────────────────
 
 model Staff {
@@ -172,49 +184,62 @@ model PushSubscription {
   @@index([staffId])
 }
 
+model ClinicCounter {
+  key       String   @id
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
 model Patient {
-  id             String    @id @default(cuid())
-  name           String
-  species        Species   @default(DOG)
-  breed          String?
-  age            String?
-  weight         Float?
-  sex            Sex       @default(UNKNOWN)
-  color          String?
-  microchipId    String?
-  isStray        Boolean   @default(true)
-  rescueLocation String?
-  rescuerInfo    String?
-  deletedAt      DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                     String       @id @default(cuid())
+  patientNumber          String?      @unique
+  name                   String
+  species                Species      @default(DOG)
+  breed                  String?
+  age                    String?
+  weight                 Float?
+  sex                    Sex          @default(UNKNOWN)
+  color                  String?
+  microchipId            String?
+  isStray                Boolean      @default(false)
+  rescueLocation         String?
+  locationGpsCoordinates String?
+  ambulancePersonName    String?
+  handlingNote           HandlingNote @default(STANDARD)
+  rescuerInfo            String?
+  deletedAt              DateTime?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   admissions Admission[]
   media      PatientMedia[]
 }
 
 model Admission {
-  id              String          @id @default(cuid())
-  patientId       String
-  patient         Patient         @relation(fields: [patientId], references: [id])
-  admissionDate   DateTime        @default(now())
-  dischargeDate   DateTime?
-  ward            Ward?
-  cageNumber      String?
-  status          AdmissionStatus @default(REGISTERED)
-  condition       Condition?
-  diagnosis       String?
-  diagnosisNotes  String?
-  chiefComplaint  String?
-  admittedById    String
-  admittedBy      Staff           @relation("admittedBy", fields: [admittedById], references: [id])
-  attendingDoctor String?
-  dischargedById  String?
-  dischargedBy    Staff?          @relation("dischargedBy", fields: [dischargedById], references: [id])
-  dischargeNotes  String?
-  deletedAt       DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id               String            @id @default(cuid())
+  patientId        String
+  patient          Patient           @relation(fields: [patientId], references: [id])
+  admissionDate    DateTime          @default(now())
+  dischargeDate    DateTime?
+  ward             Ward?
+  cageNumber       String?
+  status           AdmissionStatus   @default(REGISTERED)
+  condition        Condition?
+  diagnosis        String?
+  diagnosisNotes   String?
+  chiefComplaint   String?
+  viralRisk        Boolean?
+  spayNeuterStatus SpayNeuterStatus?
+  abcCandidate     Boolean           @default(false)
+  admittedById     String
+  admittedBy       Staff             @relation("admittedBy", fields: [admittedById], references: [id])
+  attendingDoctor  String?
+  dischargedById   String?
+  dischargedBy     Staff?            @relation("dischargedBy", fields: [dischargedById], references: [id])
+  dischargeNotes   String?
+  deletedAt        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   treatmentPlans    TreatmentPlan[]
   vitalRecords      VitalRecord[]
