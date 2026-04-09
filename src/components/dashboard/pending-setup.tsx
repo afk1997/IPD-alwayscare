@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ClipboardList, Pencil, Trash2 } from "lucide-react";
 import { formatRelative } from "@/lib/date-utils";
 import { cancelRegistration, editRegisteredPatient } from "@/actions/admissions";
+import { HANDLING_NOTE_LABELS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ interface RegisteredAdmission {
   admissionDate: Date;
   patient: {
     id: string;
+    patientNumber: string | null;
     name: string;
     species: string;
     breed: string | null;
@@ -44,6 +46,9 @@ interface RegisteredAdmission {
     color: string | null;
     isStray: boolean;
     rescueLocation: string | null;
+    locationGpsCoordinates: string | null;
+    ambulancePersonName: string | null;
+    handlingNote: string;
     rescuerInfo: string | null;
   };
   admittedBy: { name: string };
@@ -73,6 +78,9 @@ function EditRegisteredSheet({
   const [species, setSpecies] = React.useState(admission.patient.species);
   const [sex, setSex] = React.useState(admission.patient.sex);
   const [isStray, setIsStray] = React.useState(admission.patient.isStray);
+  const [handlingNote, setHandlingNote] = React.useState(
+    admission.patient.handlingNote
+  );
 
   // Reset form state when sheet opens with fresh admission data
   React.useEffect(() => {
@@ -80,6 +88,7 @@ function EditRegisteredSheet({
       setSpecies(admission.patient.species);
       setSex(admission.patient.sex);
       setIsStray(admission.patient.isStray);
+      setHandlingNote(admission.patient.handlingNote);
       setError(null);
     }
   }, [open, admission]);
@@ -93,6 +102,7 @@ function EditRegisteredSheet({
     formData.set("species", species);
     formData.set("sex", sex);
     formData.set("isStray", String(isStray));
+    formData.set("handlingNote", handlingNote);
 
     const result = await editRegisteredPatient(admission.id, formData);
     setLoading(false);
@@ -207,6 +217,53 @@ function EditRegisteredSheet({
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-ambulancePersonName">Ambulance Person Name</Label>
+            <Input
+              id="edit-ambulancePersonName"
+              name="ambulancePersonName"
+              defaultValue={admission.patient.ambulancePersonName ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-rescueLocation">Location Name</Label>
+            <Input
+              id="edit-rescueLocation"
+              name="rescueLocation"
+              defaultValue={admission.patient.rescueLocation ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-locationGpsCoordinates">GPS Coordinates</Label>
+            <Input
+              id="edit-locationGpsCoordinates"
+              name="locationGpsCoordinates"
+              defaultValue={admission.patient.locationGpsCoordinates ?? ""}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Handling Note</Label>
+            <Select
+              value={handlingNote}
+              onValueChange={(value) => setHandlingNote(value ?? "STANDARD")}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="STANDARD">Standard</SelectItem>
+                <SelectItem value="GENTLE">Gentle</SelectItem>
+                <SelectItem value="ADVANCED_HANDLER_ONLY">
+                  Advanced handler only
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <input type="hidden" name="handlingNote" value={handlingNote} />
+          </div>
+
           {/* Is Stray */}
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
@@ -218,14 +275,6 @@ function EditRegisteredSheet({
           {/* Stray-specific fields */}
           {isStray && (
             <div className="space-y-3 rounded-lg bg-muted/50 p-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-rescueLocation">Rescue Location</Label>
-                <Input
-                  id="edit-rescueLocation"
-                  name="rescueLocation"
-                  defaultValue={admission.patient.rescueLocation ?? ""}
-                />
-              </div>
               <div className="space-y-1.5">
                 <Label htmlFor="edit-rescuerInfo">Rescuer Info</Label>
                 <Input
@@ -355,6 +404,11 @@ export function PendingSetup({ admissions, isDoctor }: PendingSetupProps) {
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-foreground">
                 {admission.patient.name}
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {admission.patient.patientNumber ?? "Number pending"}
+                {" · "}
+                {HANDLING_NOTE_LABELS[admission.patient.handlingNote] ?? "Standard"}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {[

@@ -28,12 +28,15 @@ interface RegistrationFormProps {
 export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(registerPatient, null);
-  const [isStray, setIsStray] = useState(true);
+  const [isStray, setIsStray] = useState(false);
   const [species, setSpecies] = useState("DOG");
   const [sex, setSex] = useState("UNKNOWN");
+  const [handlingNote, setHandlingNote] = useState("STANDARD");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [locationPhoto, setLocationPhoto] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const locationPhotoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!state) return;
@@ -48,7 +51,7 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
     const patientName = (document.querySelector<HTMLInputElement>("#name")?.value) || "Patient";
 
     // Upload files if any were selected, then redirect
-    if (selectedFiles.length > 0 && patientId) {
+    if ((selectedFiles.length > 0 || locationPhoto) && patientId) {
       let cancelled = false;
       setIsUploading(true);
 
@@ -71,6 +74,32 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
 
           if (!cancelled && uploadedFiles.length > 0) {
             await savePatientMedia(patientId, uploadedFiles, true);
+          }
+
+          const locationUploads: Array<{
+            fileUrl: string;
+            fileId: string;
+            fileName: string;
+            mimeType: string;
+          }> = [];
+
+          if (locationPhoto) {
+            const result = await uploadFileChunked(
+              locationPhoto,
+              buildDriveFolderPath(patientName, "LOCATION"),
+              buildDriveFileName("location", locationPhoto.name)
+            );
+
+            locationUploads.push({
+              fileUrl: result.shareableLink,
+              fileId: result.fileId,
+              fileName: result.fileName,
+              mimeType: locationPhoto.type,
+            });
+          }
+
+          if (!cancelled && locationUploads.length > 0) {
+            await savePatientMedia(patientId, locationUploads, false);
           }
 
           toast.success("Patient registered");
@@ -98,7 +127,7 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
     } else {
       router.push("/");
     }
-  }, [state, router, isDoctor, selectedFiles]);
+  }, [state, router, isDoctor, selectedFiles, locationPhoto]);
 
   function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -112,6 +141,12 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function handleLocationPhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setLocationPhoto(file);
+    e.target.value = "";
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -123,6 +158,7 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
           <input type="hidden" name="species" value={species} />
           <input type="hidden" name="sex" value={sex} />
           <input type="hidden" name="isStray" value={String(isStray)} />
+          <input type="hidden" name="handlingNote" value={handlingNote} />
 
           {/* Name */}
           <div className="space-y-1.5">
@@ -218,6 +254,55 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label htmlFor="ambulancePersonName">Ambulance Person Name</Label>
+            <Input
+              id="ambulancePersonName"
+              name="ambulancePersonName"
+              placeholder="e.g., Rahul"
+              className="h-12"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="rescueLocation">Location Name</Label>
+            <Input
+              id="rescueLocation"
+              name="rescueLocation"
+              placeholder="e.g., Near Andheri Station, Mumbai"
+              className="h-12"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="locationGpsCoordinates">GPS Coordinates</Label>
+            <Input
+              id="locationGpsCoordinates"
+              name="locationGpsCoordinates"
+              placeholder="e.g., 19.0760, 72.8777"
+              className="h-12"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Handling Note</Label>
+            <Select
+              value={handlingNote}
+              onValueChange={(value) => setHandlingNote(value ?? "STANDARD")}
+            >
+              <SelectTrigger className="h-12">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="STANDARD">Standard</SelectItem>
+                <SelectItem value="GENTLE">Gentle</SelectItem>
+                <SelectItem value="ADVANCED_HANDLER_ONLY">
+                  Advanced handler only
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Photos/Videos upload */}
           <div className="space-y-2">
             <Label>Photos / Videos</Label>
@@ -262,6 +347,42 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Location Photo</Label>
+            <input
+              ref={locationPhotoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLocationPhotoSelected}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12"
+              onClick={() => locationPhotoInputRef.current?.click()}
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              Add Location Photo
+            </Button>
+            {locationPhoto && (
+              <div className="relative inline-block">
+                <img
+                  src={URL.createObjectURL(locationPhoto)}
+                  alt={locationPhoto.name}
+                  className="h-20 w-20 rounded-lg object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setLocationPhoto(null)}
+                  className="absolute -top-1.5 -right-1.5 rounded-full bg-destructive text-destructive-foreground w-5 h-5 flex items-center justify-center"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </div>
             )}
           </div>

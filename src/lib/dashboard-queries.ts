@@ -26,6 +26,7 @@ export interface DashboardSecondaryData {
     admissionDate: Date;
     patient: {
       id: string;
+      patientNumber: string | null;
       name: string;
       species: string;
       breed: string | null;
@@ -35,6 +36,9 @@ export interface DashboardSecondaryData {
       color: string | null;
       isStray: boolean;
       rescueLocation: string | null;
+      locationGpsCoordinates: string | null;
+      ambulancePersonName: string | null;
+      handlingNote: string;
       rescuerInfo: string | null;
     };
     admittedBy: { name: string };
@@ -205,6 +209,7 @@ export async function getDashboardSecondaryData(): Promise<DashboardSecondaryDat
         patient: {
           select: {
             id: true,
+            patientNumber: true,
             name: true,
             species: true,
             breed: true,
@@ -214,6 +219,9 @@ export async function getDashboardSecondaryData(): Promise<DashboardSecondaryDat
             color: true,
             isStray: true,
             rescueLocation: true,
+            locationGpsCoordinates: true,
+            ambulancePersonName: true,
+            handlingNote: true,
             rescuerInfo: true,
           },
         },

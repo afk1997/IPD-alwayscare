@@ -6,7 +6,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireDoctor, requireWriteAccess } from "@/lib/auth";
-import { formatPatientNumber } from "@/lib/intake-fields";
+import {
+  formatPatientNumber,
+  validateHandlingNote,
+} from "@/lib/intake-fields";
 import {
   validateSpecies,
   validateSex,
@@ -52,13 +55,23 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
     const color = (formData.get("color") as string) || undefined;
     const isStray = formData.get("isStray") === "true";
     const rescueLocation = (formData.get("rescueLocation") as string) || undefined;
+    const locationGpsCoordinates =
+      (formData.get("locationGpsCoordinates") as string) || undefined;
+    const ambulancePersonName =
+      (formData.get("ambulancePersonName") as string) || undefined;
+    const handlingNote = validateHandlingNote(
+      ((formData.get("handlingNote") as string) || "STANDARD").trim()
+    );
     const rescuerInfo = (formData.get("rescuerInfo") as string) || undefined;
 
     if (!name) return { error: "Patient name is required" };
 
     const result = await db.$transaction(async (tx: any) => {
+      const patientNumber = await reservePatientNumber(tx);
+
       const patient = await tx.patient.create({
         data: {
+          patientNumber,
           name,
           species: validateSpecies(species),
           breed,
@@ -68,6 +81,9 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
           color,
           isStray,
           rescueLocation,
+          locationGpsCoordinates,
+          ambulancePersonName,
+          handlingNote,
           rescuerInfo,
         },
       });
@@ -80,13 +96,22 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
         },
       });
 
-      return { patientId: patient.id, admissionId: admission.id };
+      return {
+        patientId: patient.id,
+        admissionId: admission.id,
+        patientNumber,
+      };
     });
 
     invalidateDashboardTags("setup");
     updateClinicalTags(getAdmissionMutationTags(result.admissionId));
     revalidatePath("/");
-    return { success: true, admissionId: result.admissionId, patientId: result.patientId };
+    return {
+      success: true,
+      admissionId: result.admissionId,
+      patientId: result.patientId,
+      patientNumber: result.patientNumber,
+    };
   } catch (error) {
     return handleActionError(error);
   }
@@ -161,6 +186,13 @@ export async function editRegisteredPatient(admissionId: string, formData: FormD
     const color = (formData.get("color") as string) || null;
     const isStray = formData.get("isStray") === "true";
     const rescueLocation = (formData.get("rescueLocation") as string) || null;
+    const locationGpsCoordinates =
+      (formData.get("locationGpsCoordinates") as string) || null;
+    const ambulancePersonName =
+      (formData.get("ambulancePersonName") as string) || null;
+    const handlingNote = validateHandlingNote(
+      ((formData.get("handlingNote") as string) || "STANDARD").trim()
+    );
     const rescuerInfo = (formData.get("rescuerInfo") as string) || null;
 
     if (!name) return { error: "Patient name is required" };
@@ -187,7 +219,10 @@ export async function editRegisteredPatient(admissionId: string, formData: FormD
           sex: sex ? validateSex(sex) : undefined,
           color,
           isStray,
-          rescueLocation: isStray ? rescueLocation : null,
+          rescueLocation,
+          locationGpsCoordinates,
+          ambulancePersonName,
+          handlingNote,
           rescuerInfo: isStray ? rescuerInfo : null,
         },
       });
@@ -528,8 +563,15 @@ export async function updatePatient(patientId: string, formData: FormData) {
     const weight = weightStr ? parseFloat(weightStr) : null;
     const sex = formData.get("sex") as string;
     const color = (formData.get("color") as string) || null;
-    const isStray = formData.has("isStray");
+    const isStray = formData.get("isStray") === "true";
     const rescueLocation = (formData.get("rescueLocation") as string) || null;
+    const locationGpsCoordinates =
+      (formData.get("locationGpsCoordinates") as string) || null;
+    const ambulancePersonName =
+      (formData.get("ambulancePersonName") as string) || null;
+    const handlingNote = validateHandlingNote(
+      ((formData.get("handlingNote") as string) || "STANDARD").trim()
+    );
     const rescuerInfo = (formData.get("rescuerInfo") as string) || null;
 
     if (!name) return { error: "Patient name is required" };
@@ -545,6 +587,9 @@ export async function updatePatient(patientId: string, formData: FormData) {
         color,
         isStray,
         rescueLocation,
+        locationGpsCoordinates,
+        ambulancePersonName,
+        handlingNote,
         rescuerInfo,
       },
     });
