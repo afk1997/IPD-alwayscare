@@ -58,6 +58,18 @@ export const WARD_CONFIG: Record<string, { label: string; color: string; bg: str
   ICU: { label: "ICU", color: "text-clinic-amber", bg: "bg-clinic-amber-light" },
 };
 
+export const HANDLING_NOTE_LABELS: Record<string, string> = {
+  STANDARD: "Standard",
+  GENTLE: "Gentle",
+  ADVANCED_HANDLER_ONLY: "Advanced handler only",
+};
+
+export const SPAY_NEUTER_STATUS_LABELS: Record<string, string> = {
+  UNKNOWN: "Unknown",
+  INTACT: "Intact",
+  SPAYED_NEUTERED: "Spayed / neutered",
+};
+
 export const NOTE_CATEGORY_LABELS: Record<string, string> = {
   OBSERVATION: "Observation",
   BEHAVIOR: "Behavior",
