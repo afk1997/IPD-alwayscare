@@ -125,6 +125,12 @@ enum SpayNeuterStatus {
   SPAYED_NEUTERED
 }
 
+enum RegistrationMode {
+  WALK_IN
+  AMBULANCE
+  OTHER
+}
+
 // ─── Models ────────────────────────────────────────
 
 model Staff {
@@ -205,7 +211,9 @@ model Patient {
   rescueLocation         String?
   locationGpsCoordinates String?
   ambulancePersonName    String?
-  handlingNote           HandlingNote @default(STANDARD)
+  handlingNote           HandlingNote     @default(STANDARD)
+  registrationMode      RegistrationMode @default(AMBULANCE)
+  registrationModeOther String?
   rescuerInfo            String?
   deletedAt              DateTime?
   createdAt              DateTime     @default(now())
