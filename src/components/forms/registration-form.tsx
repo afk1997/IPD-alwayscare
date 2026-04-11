@@ -32,6 +32,7 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
   const [species, setSpecies] = useState("DOG");
   const [sex, setSex] = useState("UNKNOWN");
   const [handlingNote, setHandlingNote] = useState("STANDARD");
+  const [registrationMode, setRegistrationMode] = useState("AMBULANCE");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [locationPhoto, setLocationPhoto] = useState<File | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -114,6 +115,11 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
     formData.set("sex", sex);
     formData.set("isStray", String(isStray));
     formData.set("handlingNote", handlingNote);
+    formData.set("registrationMode", registrationMode);
+    if (registrationMode === "OTHER") {
+      const otherInput = e.currentTarget.querySelector<HTMLInputElement>('[name="registrationModeOther"]');
+      if (otherInput?.value) formData.set("registrationModeOther", otherInput.value);
+    }
 
     const patientName =
       ((formData.get("name") as string | null)?.trim() || "Patient");
@@ -178,6 +184,7 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
           <input type="hidden" name="sex" value={sex} />
           <input type="hidden" name="isStray" value={String(isStray)} />
           <input type="hidden" name="handlingNote" value={handlingNote} />
+          <input type="hidden" name="registrationMode" value={registrationMode} />
 
           {/* Name */}
           <div className="space-y-1.5">
@@ -192,6 +199,38 @@ export function RegistrationForm({ isDoctor = false }: RegistrationFormProps) {
               className="h-12"
             />
           </div>
+
+          {/* Mode of Registration */}
+          <div className="space-y-1.5">
+            <Label>
+              Mode of Registration <span className="text-red-500">*</span>
+            </Label>
+            <Select
+              value={registrationMode}
+              onValueChange={(v) => setRegistrationMode(v ?? "AMBULANCE")}
+            >
+              <SelectTrigger className="h-12">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="WALK_IN">Walk-in</SelectItem>
+                <SelectItem value="AMBULANCE">Always Care Ambulance</SelectItem>
+                <SelectItem value="OTHER">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {registrationMode === "OTHER" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="registrationModeOther">Specify Mode</Label>
+              <Input
+                id="registrationModeOther"
+                name="registrationModeOther"
+                placeholder="e.g., Referred by XYZ clinic, Police brought in"
+                className="h-12"
+              />
+            </div>
+          )}
 
           {/* Species + Sex */}
           <div className="grid grid-cols-2 gap-4">
