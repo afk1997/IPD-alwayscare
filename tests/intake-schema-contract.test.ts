@@ -25,6 +25,12 @@ test("patient schema stores the approved intake metadata", () => {
     /handlingNote\s+HandlingNote\s+@default\(STANDARD\)/
   );
   assert.match(schemaSource, /isStray\s+Boolean\s+@default\(false\)/);
+  assert.match(schemaSource, /enum RegistrationMode[\s\S]*WALK_IN/);
+  assert.match(
+    schemaSource,
+    /registrationMode\s+RegistrationMode\s+@default\(AMBULANCE\)/
+  );
+  assert.match(schemaSource, /registrationModeOther\s+String\?/);
 });
 
 test("admission schema stores the approved clinical setup metadata", () => {

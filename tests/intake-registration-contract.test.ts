@@ -28,6 +28,8 @@ test("registration defaults stray to false and captures the new intake fields", 
   assert.match(registrationSource, /name="ambulancePersonName"/);
   assert.match(registrationSource, /name="locationGpsCoordinates"/);
   assert.match(registrationSource, /name="handlingNote"/);
+  assert.match(registrationSource, /name="registrationMode"/);
+  assert.match(registrationSource, /name="registrationModeOther"/);
   assert.match(registrationSource, /Location Photo \/ Video/);
 });
 
@@ -85,6 +87,9 @@ test("registerPatient persists patient number and new intake metadata", () => {
   assert.match(admissionsSource, /patientNumber,/);
   assert.match(admissionsSource, /ambulancePersonName,/);
   assert.match(admissionsSource, /handlingNote,/);
+  assert.match(admissionsSource, /const registrationMode = validateRegistrationMode/);
+  assert.match(admissionsSource, /registrationMode,/);
+  assert.match(admissionsSource, /registrationModeOther,/);
 });
 
 test("registered-patient editing covers the new intake fields", () => {
@@ -93,6 +98,9 @@ test("registered-patient editing covers the new intake fields", () => {
   assert.match(pendingSetupSource, /name="handlingNote"/);
   assert.match(admissionsSource, /editRegisteredPatient[\s\S]*handlingNote/);
   assert.match(admissionsSource, /updatePatient[\s\S]*handlingNote/);
+  assert.match(pendingSetupSource, /name="registrationMode"/);
+  assert.match(admissionsSource, /editRegisteredPatient[\s\S]*registrationMode/);
+  assert.match(admissionsSource, /updatePatient[\s\S]*registrationMode/);
   assert.match(pendingSetupSource, /patient\.patientNumber/);
   assert.match(dashboardQueriesSource, /patientNumber:\s*true/);
 });
