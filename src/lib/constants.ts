@@ -64,6 +64,12 @@ export const HANDLING_NOTE_LABELS: Record<string, string> = {
   ADVANCED_HANDLER_ONLY: "Advanced handler only",
 };
 
+export const REGISTRATION_MODE_LABELS: Record<string, string> = {
+  WALK_IN: "Walk-in",
+  AMBULANCE: "Always Care Ambulance",
+  OTHER: "Other",
+};
+
 export const SPAY_NEUTER_STATUS_LABELS: Record<string, string> = {
   UNKNOWN: "Unknown",
   INTACT: "Intact",
