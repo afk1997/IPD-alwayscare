@@ -10,6 +10,7 @@ import {
   formatPatientNumber,
   parseViralRisk,
   validateHandlingNote,
+  validateRegistrationMode,
   validateSpayNeuterStatus,
 } from "@/lib/intake-fields";
 import {
@@ -64,6 +65,13 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
     const handlingNote = validateHandlingNote(
       ((formData.get("handlingNote") as string) || "STANDARD").trim()
     );
+    const registrationMode = validateRegistrationMode(
+      ((formData.get("registrationMode") as string) || "AMBULANCE").trim()
+    );
+    const registrationModeOther =
+      registrationMode === "OTHER"
+        ? (formData.get("registrationModeOther") as string) || undefined
+        : undefined;
     const rescuerInfo = (formData.get("rescuerInfo") as string) || undefined;
 
     if (!name) return { error: "Patient name is required" };
@@ -86,6 +94,8 @@ export async function registerPatient(_prevState: unknown, formData: FormData) {
           locationGpsCoordinates,
           ambulancePersonName,
           handlingNote,
+          registrationMode,
+          registrationModeOther,
           rescuerInfo,
         },
       });
@@ -195,6 +205,13 @@ export async function editRegisteredPatient(admissionId: string, formData: FormD
     const handlingNote = validateHandlingNote(
       ((formData.get("handlingNote") as string) || "STANDARD").trim()
     );
+    const registrationMode = validateRegistrationMode(
+      ((formData.get("registrationMode") as string) || "AMBULANCE").trim()
+    );
+    const registrationModeOther =
+      registrationMode === "OTHER"
+        ? (formData.get("registrationModeOther") as string) || null
+        : null;
     const rescuerInfo = (formData.get("rescuerInfo") as string) || null;
 
     if (!name) return { error: "Patient name is required" };
@@ -225,6 +242,8 @@ export async function editRegisteredPatient(admissionId: string, formData: FormD
           locationGpsCoordinates,
           ambulancePersonName,
           handlingNote,
+          registrationMode,
+          registrationModeOther,
           rescuerInfo,
         },
       });
@@ -586,6 +605,13 @@ export async function updatePatient(patientId: string, formData: FormData) {
     const handlingNote = validateHandlingNote(
       ((formData.get("handlingNote") as string) || "STANDARD").trim()
     );
+    const registrationMode = validateRegistrationMode(
+      ((formData.get("registrationMode") as string) || "AMBULANCE").trim()
+    );
+    const registrationModeOther =
+      registrationMode === "OTHER"
+        ? (formData.get("registrationModeOther") as string) || null
+        : null;
     const rescuerInfo = (formData.get("rescuerInfo") as string) || null;
 
     if (!name) return { error: "Patient name is required" };
@@ -604,6 +630,8 @@ export async function updatePatient(patientId: string, formData: FormData) {
         locationGpsCoordinates,
         ambulancePersonName,
         handlingNote,
+        registrationMode,
+        registrationModeOther,
         rescuerInfo,
       },
     });
